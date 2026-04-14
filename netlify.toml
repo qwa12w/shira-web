@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  command = "echo '✅ بناء شراع...' && true"
+
+[build.environment]
+  NODE_VERSION = "18"
+  TZ = "Asia/Riyadh"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
