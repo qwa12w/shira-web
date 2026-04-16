@@ -8,6 +8,7 @@
 </head>
 <body>
     <header class="header">
+        <button class="about-btn" id="openAbout">عن شراع</button>
         <div class="logo">
             <span>شراع</span>
             <span class="sailboat-icon">⛵</span>
@@ -21,36 +22,23 @@
         </div>
 
         <div class="services-grid">
-            <div class="service-card taxi-card">
-                <div class="icon-circle">
-                    <span class="icon">🚗</span>
-                </div>
-                <h3>سائق تكسي</h3>
-            </div>
-
-            <div class="service-card customer-card">
-                <div class="icon-circle">
-                    <span class="icon">👤</span>
-                </div>
-                <h3>زبون</h3>
-            </div>
-
-            <div class="service-card seller-card">
-                <div class="icon-circle">
-                    <span class="icon">🏪</span>
-                </div>
-                <h3>بائع</h3>
-            </div>
-
-            <div class="service-card delivery-card">
-                <div class="icon-circle">
-                    <span class="icon">🏍️</span>
-                </div>
-                <h3>ديليفري</h3>
-            </div>
+            <div class="service-card taxi-card"><div class="icon-circle"><span class="icon">🚗</span></div><h3>سائق تكسي</h3></div>
+            <div class="service-card customer-card"><div class="icon-circle"><span class="icon">👤</span></div><h3>زبون</h3></div>
+            <div class="service-card seller-card"><div class="icon-circle"><span class="icon">🏪</span></div><h3>بائع</h3></div>
+            <div class="service-card delivery-card"><div class="icon-circle"><span class="icon">🏍️</span></div><h3>ديليفري</h3></div>
         </div>
     </main>
 
+    <!-- نافذة المعلومات -->
+    <div class="modal-overlay" id="aboutModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeAbout">&times;</button>
+            <h2>عن شراع ⛵</h2>
+            <p>منصة شراع هي المبادرة العراقية المتكاملة التي تهدف إلى ربط خدمات النقل الذكي، التوصيل السريع، والتجارة الإلكترونية في بيئة واحدة آمنة وسهلة الاستخدام.</p>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
     <script>setInterval(() => location.reload(), 20000);</script>
 </body>
 </html>
