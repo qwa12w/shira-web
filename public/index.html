@@ -8,23 +8,23 @@
 </head>
 <body>
 
-    <!-- 1. شاشة الصيانة (مخفية افتراضيا) -->
+    <!-- 1. شاشة الصيانة -->
     <div id="maintenance-screen" class="hidden">
         <h1>⛵ الموقع تحت الصيانة</h1>
         <p>نعمل على تحديثات هامة، سنعود قريباً.</p>
     </div>
 
-    <!-- 2. الواجهة الرئيسية للزوار -->
+    <!-- 2. الواجهة الرئيسية -->
     <div id="main-app">
         <header class="header">
-            <div class="logo">
+            <button id="btn-about" class="nav-btn">عن شراع</button>
+            
+            <div id="logo-container" class="logo">
                 <span>شراع</span>
                 <span class="sailboat-icon">⛵</span>
             </div>
-            <nav>
-                <button id="btn-about" class="nav-btn">عن شراع</button>
-                <button id="btn-admin-login" class="nav-btn admin-trigger">الإدارة 🔐</button>
-            </nav>
+            
+            <div style="width: 80px;"></div>
         </header>
 
         <main class="main-content">
@@ -54,7 +54,7 @@
         </main>
     </div>
 
-    <!-- 3. شاشة دخول الإدارة (مخفية افتراضيا) -->
+    <!-- 3. شاشة دخول الإدارة -->
     <div id="admin-login" class="hidden">
         <div class="login-box">
             <h2>🔐 دخول الإدارة</h2>
@@ -66,7 +66,7 @@
         </div>
     </div>
 
-    <!-- 4. لوحة تحكم الإدارة (مخفية افتراضيا) -->
+    <!-- 4. لوحة تحكم الإدارة -->
     <div id="admin-panel" class="hidden">
         <aside class="admin-sidebar">
             <div class="admin-logo">شراع - الإدارة</div>
@@ -79,7 +79,6 @@
         </aside>
 
         <main class="admin-content">
-            <!-- تبويب لوحة المعلومات -->
             <section id="tab-dashboard" class="admin-tab active">
                 <h2>ملخص المنصة</h2>
                 <div class="stats-grid">
@@ -88,7 +87,6 @@
                 </div>
             </section>
 
-            <!-- تبويب المستخدمين -->
             <section id="tab-users" class="admin-tab hidden">
                 <h2>إدارة المستخدمين</h2>
                 <div class="table-container">
@@ -101,7 +99,6 @@
                 </div>
             </section>
 
-            <!-- تبويب الإعدادات -->
             <section id="tab-settings" class="admin-tab hidden">
                 <h2>إعدادات النظام</h2>
                 <div class="setting-card">
@@ -121,7 +118,7 @@
         </main>
     </div>
 
-    <!-- 5. نافذة منبثقة عامة (لزر "عن شراع") -->
+    <!-- 5. نافذة منبثقة -->
     <div class="modal-overlay hidden" id="about-modal">
         <div class="modal-content">
             <button class="close-modal">&times;</button>
