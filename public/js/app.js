@@ -23,9 +23,6 @@ const DB = {
 document.addEventListener('DOMContentLoaded', () => {
     DB.init();
     
-    // حفظ حالة الصفحة الحالية
-    const currentPage = localStorage.getItem('shira_currentPage') || 'main';
-    
     const screens = {
         main: document.getElementById('main-app'),
         login: document.getElementById('admin-login'),
@@ -33,25 +30,23 @@ document.addEventListener('DOMContentLoaded', () => {
         maintenance: document.getElementById('maintenance-screen')
     };
 
-    // التحقق من وضع الصيانة
+    // استعادة الحالة المحفوظة (للحفاظ على الصفحة بعد التحديث التلقائي)
+    const savedScreen = localStorage.getItem('shira_currentScreen') || 'main';
     const settings = DB.get('settings');
-    if (settings.maintenance && currentPage === 'main') {
-        screens.main.classList.add('hidden');
-        screens.maintenance.classList.remove('hidden');
-        localStorage.setItem('shira_currentPage', 'maintenance');
+    
+    if (settings.maintenance && savedScreen !== 'login' && savedScreen !== 'panel') {
+        showScreen('maintenance');
     } else {
-        // استعادة الصفحة الأخيرة
-        showScreen(currentPage);
+        showScreen(savedScreen);
     }
 
-    // دالة التنقل بين الشاشات مع الحفظ
-    const showScreen = (screenName) => {
+    function showScreen(screenName) {
         Object.values(screens).forEach(el => el.classList.add('hidden'));
         if (screens[screenName]) {
             screens[screenName].classList.remove('hidden');
-            localStorage.setItem('shira_currentPage', screenName);
+            localStorage.setItem('shira_currentScreen', screenName);
         }
-    };
+    }
 
     // --- الأحداث ---
     
@@ -60,22 +55,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const aboutModal = document.getElementById('about-modal');
     const closeModal = document.querySelector('.close-modal');
 
-    if (aboutBtn && aboutModal) {
+    if (aboutBtn) {
         aboutBtn.onclick = () => aboutModal.classList.remove('hidden');
     }
-    if (closeModal && aboutModal) {
+    if (closeModal) {
         closeModal.onclick = () => aboutModal.classList.add('hidden');
+    }
+    if (aboutModal) {
         aboutModal.onclick = (e) => {
             if (e.target === aboutModal) aboutModal.classList.add('hidden');
         };
     }
 
-    // الشعار - للدخول للإدارة (زر مخفي)
+    // الشعار - دخول الإدارة (زر مخفي)
     const logoContainer = document.getElementById('logo-container');
     if (logoContainer) {
-        logoContainer.onclick = () => {
-            showScreen('login');
-        };
+        logoContainer.onclick = () => showScreen('login');
         logoContainer.style.cursor = 'pointer';
     }
 
@@ -83,6 +78,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn = document.getElementById('back-to-home');
     if (backBtn) {
         backBtn.onclick = () => showScreen('main');
+    }
+
+    // تسجيل دخول الإدارة
+    const loginSubmit = document.getElementById('login-submit');
+    if (loginSubmit) {
+        loginSubmit.onclick = () => {
+            const u = document.getElementById('admin-user').value;
+            const p = document.getElementById('admin-pass').value;
+            const errorMsg = document.getElementById('login-error');
+            
+            if (u === 'admin' && p === '1234') {
+                showScreen('panel');
+                loadAdminData();
+                if (errorMsg) errorMsg.classList.add('hidden');
+            } else {
+                if (errorMsg) errorMsg.classList.remove('hidden');
+            }
+        };
     }
 
     // تسجيل الخروج
@@ -95,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // --- لوحة التحكم ---
+    // التنقل في لوحة التحكم
     const navBtns = document.querySelectorAll('.admin-nav-btn');
     navBtns.forEach(btn => {
         btn.onclick = () => {
@@ -168,15 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
             s.maintenance = e.target.checked;
             DB.set('settings', s);
             loadAdminData();
-            if (e.target.checked) {
-                alert('تم تفعيل وضع الصيانة! سيختفي الموقع للزوار.');
-            } else {
-                alert('تم إيقاف وضع الصيانة.');
-            }
+            alert(e.target.checked ? 'تم تفعيل وضع الصيانة!' : 'تم إيقاف وضع الصيانة.');
         };
     }
 
-    // إعادة الضبط
+    // إعادة ضبط المصنع
     const resetBtn = document.getElementById('reset-db');
     if (resetBtn) {
         resetBtn.onclick = () => {
@@ -187,5 +196,5 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    console.log("✅ تم تشغيل النظام مع حفظ الحالة");
+    console.log("✅ تم تشغيل النظام مع حفظ الحالة التلقائي");
 });
