@@ -1,44 +1,138 @@
+cat > public/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شراع</title>
+    <title>منصة شراع</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header class="header">
-        <button class="about-btn" id="openAbout">عن شراع</button>
-        <div class="logo">
-            <span>شراع</span>
-            <span class="sailboat-icon">⛵</span>
-        </div>
-    </header>
 
-    <main class="main-content">
-        <div class="hero-section">
-            <h1 class="main-title">كل خدماتك في<br><span class="highlight">تطبيق واحد</span></h1>
-            <p class="subtitle">منصة البصرة الأولى للنقل والتسوق</p>
-        </div>
+    <!-- 1. شاشة الصيانة (تظهر فقط إذا فعلها الأدمن) -->
+    <div id="maintenance-screen" class="hidden">
+        <h1>⛵ الموقع تحت الصيانة</h1>
+        <p>نعمل على تحديثات هامة، سنعود قريباً.</p>
+    </div>
 
-        <div class="services-grid">
-            <div class="service-card taxi-card"><div class="icon-circle"><span class="icon">🚗</span></div><h3>سائق تكسي</h3></div>
-            <div class="service-card customer-card"><div class="icon-circle"><span class="icon">👤</span></div><h3>زبون</h3></div>
-            <div class="service-card seller-card"><div class="icon-circle"><span class="icon">🏪</span></div><h3>بائع</h3></div>
-            <div class="service-card delivery-card"><div class="icon-circle"><span class="icon">🏍️</span></div><h3>ديليفري</h3></div>
-        </div>
-    </main>
+    <!-- 2. الواجهة الرئيسية للزوار -->
+    <div id="main-app">
+        <header class="header">
+            <div class="logo">
+                <span>شراع</span>
+                <span class="sailboat-icon">⛵</span>
+            </div>
+            <nav>
+                <button id="btn-about" class="nav-btn">عن شراع</button>
+                <button id="btn-admin-login" class="nav-btn admin-trigger">الإدارة 🔐</button>
+            </nav>
+        </header>
 
-    <!-- نافذة المعلومات -->
-    <div class="modal-overlay" id="aboutModal">
-        <div class="modal-content">
-            <button class="close-btn" id="closeAbout">&times;</button>
-            <h2>عن شراع ⛵</h2>
-            <p>منصة شراع هي المبادرة العراقية المتكاملة التي تهدف إلى ربط خدمات النقل الذكي، التوصيل السريع، والتجارة الإلكترونية في بيئة واحدة آمنة وسهلة الاستخدام.</p>
+        <main class="main-content">
+            <div class="hero-section">
+                <h1 class="main-title">كل خدماتك في<br><span class="highlight">تطبيق واحد</span></h1>
+                <p class="subtitle">منصة البصرة الأولى للنقل والتسوق</p>
+            </div>
+
+            <div class="services-grid">
+                <div class="service-card taxi-card" data-role="driver">
+                    <div class="icon-circle"><span class="icon">🚗</span></div>
+                    <h3>سائق تكسي</h3>
+                </div>
+                <div class="service-card customer-card" data-role="customer">
+                    <div class="icon-circle"><span class="icon">👤</span></div>
+                    <h3>زبون</h3>
+                </div>
+                <div class="service-card seller-card" data-role="seller">
+                    <div class="icon-circle"><span class="icon">🏪</span></div>
+                    <h3>بائع</h3>
+                </div>
+                <div class="service-card delivery-card" data-role="delivery">
+                    <div class="icon-circle"><span class="icon">🏍️</span></div>
+                    <h3>ديلفري</h3>
+                </div>
+            </div>
+        </main>
+        
+        <!-- نافذة منبثقة عامة -->
+        <div class="modal-overlay hidden" id="generic-modal">
+            <div class="modal-content">
+                <button class="close-modal">&times;</button>
+                <div id="modal-body"></div>
+            </div>
         </div>
     </div>
 
+    <!-- 3. بوابة دخول الإدارة -->
+    <div id="admin-login" class="hidden">
+        <div class="login-box">
+            <h2>🔐 دخول الإدارة</h2>
+            <input type="text" id="admin-user" placeholder="اسم المستخدم">
+            <input type="password" id="admin-pass" placeholder="كلمة المرور">
+            <button id="login-submit" class="btn-primary">دخول</button>
+            <p class="error-msg hidden" id="login-error">بيانات خاطئة</p>
+            <button class="btn-back" id="back-to-home">عودة للموقع</button>
+        </div>
+    </div>
+
+    <!-- 4. لوحة تحكم الإدارة -->
+    <div id="admin-panel" class="hidden">
+        <aside class="admin-sidebar">
+            <div class="admin-logo">شراع - الإدارة</div>
+            <nav>
+                <button class="admin-nav-btn active" data-tab="dashboard">الرئيسية 📊</button>
+                <button class="admin-nav-btn" data-tab="users">المستخدمين 👥</button>
+                <button class="admin-nav-btn" data-tab="settings">الإعدادات ⚙️</button>
+            </nav>
+            <button id="logout-admin" class="logout-btn">تسجيل خروج</button>
+        </aside>
+
+        <main class="admin-content">
+            <!-- تبويب لوحة المعلومات -->
+            <section id="tab-dashboard" class="admin-tab active">
+                <h2>ملخص المنصة</h2>
+                <div class="stats-grid">
+                    <div class="stat-card blue"><h3>المستخدمين</h3><span id="stat-users">0</span></div>
+                    <div class="stat-card green"><h3>الحالة</h3><span id="stat-status">نشط</span></div>
+                </div>
+            </section>
+
+            <!-- تبويب المستخدمين -->
+            <section id="tab-users" class="admin-tab hidden">
+                <h2>إدارة المستخدمين</h2>
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr><th>ID</th><th>الاسم</th><th>الدور</th><th>الحالة</th><th>إجراء</th></tr>
+                        </thead>
+                        <tbody id="users-list"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- تبويب الإعدادات -->
+            <section id="tab-settings" class="admin-tab hidden">
+                <h2>إعدادات النظام</h2>
+                <div class="setting-card">
+                    <div class="setting-info">
+                        <h3>وضع الصيانة 🛠️</h3>
+                        <p>إخفاء الموقع عن الزوار وإظهار شاشة الصيانة</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="maintenance-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-card" style="margin-top: 20px;">
+                     <button id="reset-db" class="btn-danger">إعادة ضبط المصنع (حذف كل البيانات)</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- السكربتات -->
     <script src="js/app.js"></script>
     <script>setInterval(() => location.reload(), 20000);</script>
 </body>
 </html>
+EOF
