@@ -1,28 +1,170 @@
-:root {
-  --primary: #0ea5e9;
-  --secondary: #6366f1;
-  --bg: #0f172a;
-  --text: #f8fafc;
-  --card-bg: #1e293b;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; direction: rtl; text-align: right; }
-.header { position: fixed; top: 0; width: 100%; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.95); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.brand-logo { font-size: 1.8rem; font-weight: 800; background: linear-gradient(45deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.nav-links { display: flex; gap: 1.5rem; }
-.nav-links a { color: var(--text); text-decoration: none; font-weight: 500; transition: 0.3s; }
-.nav-links a:hover { color: var(--primary); }
-.hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6rem 1rem 4rem; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
-.hero-content { max-width: 800px; padding: 0 1rem; }
-.hero-title { font-size: 3.5rem; font-weight: 900; margin-bottom: 1rem; line-height: 1.2; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hero-subtitle { font-size: 1.2rem; color: #94a3b8; margin-bottom: 2rem; }
-.hero-btn { padding: 1rem 2.5rem; background: linear-gradient(45deg, var(--primary), var(--secondary)); color: white; border: none; border-radius: 50px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(14, 165, 233, 0.3); }
-.hero-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(14, 165, 233, 0.5); }
-.services { padding: 5rem 5%; background: var(--bg); }
-.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; }
-.service-card { background: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); transition: 0.3s; cursor: pointer; }
-.service-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(14, 165, 233, 0.2); }
-.service-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
-.service-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-.footer { text-align: center; padding: 2rem; background: #020617; border-top: 1px solid rgba(255,255,255,0.1); }
-@media (max-width: 768px) { .hero-title { font-size: 2.5rem; } .nav-links { display: none; } }
+
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #ffffff;
+    direction: rtl;
+    text-align: right;
+}
+
+.header {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #d97706;
+}
+
+.sailboat-icon {
+    font-size: 1.8rem;
+}
+
+.main-content {
+    padding: 2rem 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.hero-section {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 1rem 0;
+}
+
+.main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.highlight {
+    color: #eab308;
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.service-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+}
+
+.icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.icon {
+    font-size: 2.5rem;
+}
+
+.service-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Taxi Card - Blue */
+.taxi-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-bottom: 4px solid #3b82f6;
+}
+
+.taxi-card .icon-circle {
+    background: #dbeafe;
+}
+
+/* Customer Card - Yellow/Gold */
+.customer-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-bottom: 4px solid #f59e0b;
+}
+
+.customer-card .icon-circle {
+    background: #fef3c7;
+}
+
+/* Seller Card - Purple */
+.seller-card {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border-bottom: 4px solid #a855f7;
+}
+
+.seller-card .icon-circle {
+    background: #f3e8ff;
+}
+
+/* Delivery Card - Green */
+.delivery-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-bottom: 4px solid #22c55e;
+}
+
+.delivery-card .icon-circle {
+    background: #dcfce7;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .main-title {
+        font-size: 1.8rem;
+    }
+    
+    .services-grid {
+        gap: 1rem;
+    }
+    
+    .service-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .icon-circle {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .icon {
+        font-size: 2rem;
+    }
+}
