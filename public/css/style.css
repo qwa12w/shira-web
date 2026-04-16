@@ -1,148 +1,176 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* إعادة الضبط والأساسيات */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
+    background: #f8fafc; 
+    direction: rtl; 
+    text-align: center; 
+    min-height: 100vh; 
 }
 
-body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: #f8fafc; /* خلفية فاتحة جداً لإبراز العناصر */
-    direction: rtl;
-    text-align: center;
-    min-height: 100vh;
+/* الهيدر والشعار */
+.header { 
+    background: #ffffff; 
+    padding: 1.5rem 0; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+    position: sticky; 
+    top: 0; 
+    z-index: 100; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    position: relative; 
+}
+.logo { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 0.8rem; 
+    font-size: 1.8rem; 
+    font-weight: 800; 
+    color: #d97706; 
+    text-shadow: 2px 2px 0px rgba(217, 119, 6, 0.1); 
+}
+.sailboat-icon { 
+    font-size: 2.2rem; 
+    animation: float 3s ease-in-out infinite; 
+}
+@keyframes float { 
+    0%, 100% { transform: translateY(0); } 
+    50% { transform: translateY(-5px); } 
 }
 
-/* 1. الشعار في المنتصف */
-.header {
-    background: #ffffff;
-    padding: 1.5rem 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    display: flex;
-    justify-content: center; /* توسيط الشعار */
-    align-items: center;
+/* زر "عن شراع" */
+.about-btn { 
+    position: absolute; 
+    right: 20px; 
+    background: transparent; 
+    border: 1.5px solid #e2e8f0; 
+    color: #64748b; 
+    padding: 0.5rem 1rem; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+}
+.about-btn:hover { 
+    background: #f1f5f9; 
+    border-color: #cbd5e1; 
+    color: #0f172a; 
 }
 
-.logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #d97706;
-    text-shadow: 2px 2px 0px rgba(217, 119, 6, 0.1);
+/* المحتوى الرئيسي والهيرو */
+.main-content { padding: 3rem 1rem; max-width: 500px; margin: 0 auto; }
+.hero-section { margin-bottom: 2.5rem; }
+.main-title { 
+    font-size: 2rem; 
+    font-weight: 900; 
+    color: #0f172a; 
+    line-height: 1.3; 
+    margin-bottom: 0.5rem; 
+    text-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+}
+.highlight { color: #eab308; position: relative; display: inline-block; }
+.subtitle { font-size: 0.95rem; color: #64748b; font-weight: 500; }
+
+/* شبكة الخدمات والبطاقات ثلاثية الأبعاد */
+.services-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 1.5rem; 
+    justify-items: center; 
+    perspective: 1000px; 
+}
+.service-card { 
+    background: #ffffff; 
+    width: 100%; 
+    max-width: 140px; 
+    aspect-ratio: 1 / 1; 
+    border-radius: 24px; 
+    padding: 1rem; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 0.8rem; 
+    cursor: pointer; 
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    transform-style: preserve-3d; 
+    position: relative; 
+    border: 1px solid rgba(255,255,255,0.8); 
+}
+.service-card:hover { 
+    transform: translateY(-10px) scale(1.05) rotateX(5deg); 
+    box-shadow: 0 20px 30px rgba(0,0,0,0.15), 0 0 0 4px rgba(255,255,255,0.5); 
+}
+.icon-circle { 
+    width: 60px; 
+    height: 60px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 2rem; 
+    transform: translateZ(20px); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+}
+.service-card h3 { 
+    font-size: 0.9rem; 
+    font-weight: 700; 
+    color: #334155; 
+    transform: translateZ(10px); 
 }
 
-.sailboat-icon {
-    font-size: 2.2rem;
-    animation: float 3s ease-in-out infinite; /* حركة طفيفة للشعار */
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-}
-
-.main-content {
-    padding: 3rem 1rem;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.hero-section {
-    margin-bottom: 2.5rem;
-}
-
-.main-title {
-    font-size: 2rem;
-    font-weight: 900;
-    color: #0f172a;
-    line-height: 1.3;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.highlight {
-    color: #eab308;
-    position: relative;
-    display: inline-block;
-}
-
-.subtitle {
-    font-size: 0.95rem;
-    color: #64748b;
-    font-weight: 500;
-}
-
-/* شبكة الخدمات */
-.services-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    justify-items: center;
-    perspective: 1000px; /* تفعيل المنظور ثلاثي الأبعاد */
-}
-
-/* 2. & 3. البطاقات: أصغر حجماً + تأثير 3D */
-.service-card {
-    background: #ffffff;
-    width: 100%;
-    max-width: 140px; /* تصغير الحجم */
-    aspect-ratio: 1 / 1; /* جعلها مربعة */
-    border-radius: 24px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* حركة مرنة */
-    transform-style: preserve-3d;
-    position: relative;
-    border: 1px solid rgba(255,255,255,0.8);
-}
-
-/* تأثير الظل العميق والرفع عند التحويم */
-.service-card:hover {
-    transform: translateY(-10px) scale(1.05) rotateX(5deg);
-    box-shadow: 
-        0 20px 30px rgba(0,0,0,0.15), /* ظل سفلي قوي */
-        0 0 0 4px rgba(255,255,255,0.5); /* حلقة ضوئية */
-}
-
-/* الأيقونات داخل الدوائر */
-.icon-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    transform: translateZ(20px); /* بروز الأيقونة للأمام (3D) */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.service-card h3 {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #334155;
-    transform: translateZ(10px); /* بروز النص للأمام */
-}
-
-/* ألوان البطاقات المتدرجة */
+/* ألوان البطاقات */
 .taxi-card { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom: 4px solid #3b82f6; }
 .taxi-card .icon-circle { background: #bfdbfe; }
-
 .customer-card { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-bottom: 4px solid #f59e0b; }
 .customer-card .icon-circle { background: #fde68a; }
-
 .seller-card { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom: 4px solid #a855f7; }
 .seller-card .icon-circle { background: #e9d5ff; }
-
 .delivery-card { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom: 4px solid #22c55e; }
 .delivery-card .icon-circle { background: #bbf7d0; }
+
+/* نافذة "عن شراع" */
+.modal-overlay { 
+    position: fixed; 
+    top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(15, 23, 42, 0.6); 
+    backdrop-filter: blur(8px); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    opacity: 0; 
+    pointer-events: none; 
+    transition: opacity 0.3s ease; 
+    z-index: 1000; 
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-content { 
+    background: #ffffff; 
+    padding: 2.5rem 2rem; 
+    border-radius: 24px; 
+    max-width: 90%; 
+    width: 400px; 
+    text-align: center; 
+    position: relative; 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+    transform: translateY(20px); 
+    transition: transform 0.3s ease; 
+}
+.modal-overlay.active .modal-content { transform: translateY(0); }
+.close-btn { 
+    position: absolute; 
+    top: 15px; left: 15px; 
+    background: #f1f5f9; 
+    border: none; 
+    width: 32px; height: 32px; 
+    border-radius: 50%; 
+    font-size: 1.2rem; 
+    cursor: pointer; 
+    color: #475569; 
+    display: flex; align-items: center; justify-content: center; 
+}
+.modal-content h2 { margin-bottom: 1rem; color: #0f172a; font-size: 1.5rem; }
+.modal-content p { color: #475569; line-height: 1.8; font-size: 0.95rem; }
