@@ -1,78 +1,13 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>منصة شراع المتكاملة</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شراع</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- القسم الرئيسي -->
-  <section class="hero-section">
-    <div class="container">
-      <div class="auto-update-badge">
-        <span>✅ تحديث تلقائي ناجح!</span>
-        <span id="timestamp">20:53</span>
-      </div>
-      
-      <h1 class="brand-logo">شراع 🚤</h1>
-      <h2 class="main-title">منصة شراع المتكاملة</h2>
-      <p class="subtitle">تاكسي • توصيل • متاجر • كل شيء في مكان واحد</p>
-      
-      <button class="btn-3d pulse shine" onclick="scrollToServices()">
-        ابدأ الآن
-      </button>
-    </div>
-  </section>
-
-  <!-- قسم الخدمات -->
-  <section class="services-section" id="services">
-    <div class="container">
-      <div class="services-grid">
-        <!-- تاكسي شراع -->
-        <div class="service-card shine" onclick="openService('taxi')">
-          <span class="service-icon">🚕</span>
-          <h3 class="service-title">تكسي شراع</h3>
-        </div>
-
-        <!-- توصيل فوري -->
-        <div class="service-card shine" onclick="openService('delivery')">
-          <span class="service-icon">📦</span>
-          <h3 class="service-title">توصيل فوري</h3>
-        </div>
-
-        <!-- متاجر أونلاين -->
-        <div class="service-card shine" onclick="openService('shopping')">
-          <span class="service-icon">🛒</span>
-          <h3 class="service-title">متاجر أونلاين</h3>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- الفوتر -->
-  <footer class="footer">
-    <p class="footer-text">© 2026 شراع. جميع الحقوق محفوظة.</p>
-  </footer>
-
-  <!-- ملفات الجافاسكريبت -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/database.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/features.js"></script>
-  
-  <script>
-    // التمرير لقسم الخدمات
-    function scrollToServices() {
-      document.getElementById('services').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // فتح الخدمة
-    function openService(serviceType) {
-      console.log('فتح الخدمة:', serviceType);
-      // هنا سنضيف وظائف لاحقاً
-      alert('قريباً: ' + serviceType);
-    }
-  </script>
+    <h1 style="display:flex; justify-content:center; align-items:center; height:100vh; margin:0; font-family:system-ui, sans-serif; font-size:4rem; color:#0f172a;">شراع</h1>
+    <script>setInterval(() => location.reload(), 20000);</script>
 </body>
 </html>
