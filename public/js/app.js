@@ -30,14 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
         maintenance: document.getElementById('maintenance-screen')
     };
 
-    // استعادة الحالة المحفوظة (للحفاظ على الصفحة بعد التحديث التلقائي)
+    // استعادة الحالة المحفوظة
     const savedScreen = localStorage.getItem('shira_currentScreen') || 'main';
+    const savedTab = localStorage.getItem('shira_adminTab') || 'dashboard';
     const settings = DB.get('settings');
     
     if (settings.maintenance && savedScreen !== 'login' && savedScreen !== 'panel') {
         showScreen('maintenance');
     } else {
         showScreen(savedScreen);
+        if (savedScreen === 'panel') {
+            activateTab(savedTab);
+        }
     }
 
     function showScreen(screenName) {
@@ -46,6 +50,30 @@ document.addEventListener('DOMContentLoaded', () => {
             screens[screenName].classList.remove('hidden');
             localStorage.setItem('shira_currentScreen', screenName);
         }
+    }
+
+    function activateTab(tabName) {
+        // تحديث الأزرار النشطة
+        document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // تحديث التبويبات
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.classList.add('hidden');
+            tab.classList.remove('active');
+        });
+        
+        const activeTab = document.getElementById(`tab-${tabName}`);
+        if (activeTab) {
+            activeTab.classList.remove('hidden');
+            activeTab.classList.add('active');
+        }
+        
+        localStorage.setItem('shira_adminTab', tabName);
     }
 
     // --- الأحداث ---
@@ -67,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // الشعار - دخول الإدارة (زر مخفي)
+    // الشعار - دخول الإدارة
     const logoContainer = document.getElementById('logo-container');
     if (logoContainer) {
         logoContainer.onclick = () => showScreen('login');
@@ -108,24 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // التنقل في لوحة التحكم
+    // التنقل في لوحة التحكم - مع حفظ التبويب
     const navBtns = document.querySelectorAll('.admin-nav-btn');
     navBtns.forEach(btn => {
         btn.onclick = () => {
-            navBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            document.querySelectorAll('.admin-tab').forEach(t => {
-                t.classList.add('hidden');
-                t.classList.remove('active');
-            });
-            
-            const tabId = `tab-${btn.dataset.tab}`;
-            const activeTab = document.getElementById(tabId);
-            if (activeTab) {
-                activeTab.classList.remove('hidden');
-                activeTab.classList.add('active');
-            }
+            const tabName = btn.dataset.tab;
+            activateTab(tabName);
         };
     });
 
@@ -196,5 +212,5 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    console.log("✅ تم تشغيل النظام مع حفظ الحالة التلقائي");
+    console.log("✅ تم تشغيل النظام مع حفظ التبويب النشط");
 });
