@@ -37,11 +37,10 @@ async function restoreState() {
   const savedTab = localStorage.getItem('shira_adminTab');
   
   if (savedScreen) {
-    // إظهار الشاشة المحفوظة مؤقتاً حتى نتحقق من الجلسة
     const screen = document.getElementById(savedScreen);
     if (screen) {
       document.querySelectorAll('body > div').forEach(div => {
-        if (div.id !== 'about-modal') div.classList.add('hidden');
+        if (div.id !== 'about-modal' && div.id !== 'contact-modal') div.classList.add('hidden');
       });
       screen.classList.remove('hidden');
     }
@@ -76,7 +75,6 @@ async function checkSession() {
     if (session) {
       currentUser = session.user;
       
-      // جلب بيانات المستخدم من profiles
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -84,19 +82,16 @@ async function checkSession() {
         .single();
       
       if (profile) {
-        // التحقق من الحالة
         if (profile.status === 'محظور') {
           showBlockedScreen();
         } else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') {
           showScreen('pending-screen');
         } else {
-          // دخول ناجح - توجيه للوحة التحكم
           showUserDashboard(profile);
           localStorage.setItem('shira_currentScreen', 'user-dashboard');
         }
       }
     } else {
-      // لا توجد جلسة - إظهار الصفحة الرئيسية
       showScreen('main-app');
       localStorage.setItem('shira_currentScreen', 'main-app');
     }
@@ -111,7 +106,6 @@ async function checkSession() {
 // 4. المزامنة الذكية (Realtime)
 // ==========================================
 function setupRealtimeSync() {
-  // الاشتراك في تحديثات المستخدمين (للإدارة)
   supabaseClient
     .channel('profiles_changes')
     .on('postgres_changes', 
@@ -119,22 +113,19 @@ function setupRealtimeSync() {
       (payload) => {
         console.log('🔄 تحديث في المستخدمين:', payload);
         
-        // إذا كنا في لوحة الإدارة، حدث البيانات
-        if (!document.getElementById('admin-panel').classList.contains('hidden')) {
+        if (!document.getElementById('admin-panel')?.classList.contains('hidden')) {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             loadDashboardStats();
-            if (!document.getElementById('tab-users').classList.contains('hidden')) {
+            if (!document.getElementById('tab-users')?.classList.contains('hidden')) {
               loadUsersTable();
             }
           }
         }
         
-        // إذا كان المستخدم الحالي تأثر بالتغيير
         if (currentUser && payload.new?.id === currentUser.id) {
           if (payload.new?.status === 'محظور') {
             showBlockedScreen();
           } else if (payload.new?.status === 'نشط' && currentRole !== 'زبون') {
-            // تم الموافقة على الحساب
             location.reload();
           }
         }
@@ -142,7 +133,6 @@ function setupRealtimeSync() {
     )
     .subscribe();
   
-  // الاشتراك في تحديثات الإعدادات
   supabaseClient
     .channel('settings_changes')
     .on('postgres_changes',
@@ -194,11 +184,28 @@ function setupEventListeners() {
   
   // زر "عن شراع"
   document.getElementById('btn-about')?.addEventListener('click', () => {
-    document.getElementById('about-modal').classList.remove('hidden');
+    document.getElementById('about-modal')?.classList.remove('hidden');
   });
   
-  document.querySelector('.close-modal')?.addEventListener('click', () => {
-    document.getElementById('about-modal').classList.add('hidden');
+  // زر "تواصل معنا" ✨ جديد
+  document.getElementById('btn-contact')?.addEventListener('click', () => {
+    document.getElementById('contact-modal')?.classList.remove('hidden');
+  });
+  
+  // إغلاق النوافذ المنبثقة
+  document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('about-modal')?.classList.add('hidden');
+      document.getElementById('contact-modal')?.classList.add('hidden');
+    });
+  });
+  
+  // إغلاق النوافذ عند النقر خارجها
+  ['about-modal', 'contact-modal'].forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
   });
   
   // الشعار - دخول الإدارة
@@ -289,13 +296,11 @@ async function handleAuthSubmit(e) {
   
   try {
     if (currentAuthMode === 'register') {
-      // تسجيل جديد
       if (!name) {
         showMsg(msgEl, 'الاسم مطلوب', 'error');
         return;
       }
       
-      // إنشاء حساب في Supabase Auth
       const { data: authData, error: authError } = await supabaseClient.auth.signUp({
         email: `${phone}@shira.app`,
         password: password,
@@ -310,7 +315,6 @@ async function handleAuthSubmit(e) {
       
       if (authError) throw authError;
       
-      // إنشاء سجل في profiles
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .insert({
@@ -323,7 +327,6 @@ async function handleAuthSubmit(e) {
       
       if (profileError) throw profileError;
       
-      // إذا كان سائق/ديلفري/بائع - رفع الوثائق
       if (currentRole !== 'زبون') {
         await uploadDocuments(authData.user.id);
       }
@@ -342,7 +345,6 @@ async function handleAuthSubmit(e) {
       }, 1500);
       
     } else {
-      // تسجيل دخول
       const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
         email: `${phone}@shira.app`,
         password: password
@@ -352,7 +354,6 @@ async function handleAuthSubmit(e) {
       
       currentUser = authData.user;
       
-      // جلب البيانات
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -361,7 +362,6 @@ async function handleAuthSubmit(e) {
       
       if (!profile) throw new Error('الملف غير موجود');
       
-      // التحقق من الحالة
       if (profile.status === 'محظور') {
         showBlockedScreen();
         localStorage.setItem('shira_currentScreen', 'blocked-screen');
@@ -392,7 +392,6 @@ async function uploadDocuments(userId) {
   
   const uploadedFiles = {};
   
-  // رفع كل ملف
   for (const [key, input] of Object.entries(fileInputs)) {
     if (input?.files?.[0]) {
       const file = input.files[0];
@@ -415,7 +414,6 @@ async function uploadDocuments(userId) {
     }
   }
   
-  // بيانات إضافية
   const vehicleType = document.getElementById('vehicle-type')?.value;
   const vehicleColor = document.getElementById('vehicle-color')?.value;
   const vehiclePlate = document.getElementById('vehicle-plate')?.value;
@@ -426,7 +424,6 @@ async function uploadDocuments(userId) {
   if (vehiclePlate) uploadedFiles.vehicle_plate = vehiclePlate;
   if (bikeRegistered !== undefined) uploadedFiles.bike_registered = bikeRegistered === 'true';
   
-  // حفظ في جدول documents
   if (Object.keys(uploadedFiles).length > 0) {
     await supabaseClient
       .from('documents')
@@ -442,7 +439,7 @@ async function uploadDocuments(userId) {
 // ==========================================
 function showScreen(screenId) {
   document.querySelectorAll('body > div').forEach(div => {
-    if (div.id !== 'about-modal') {
+    if (div.id !== 'about-modal' && div.id !== 'contact-modal') {
       div.classList.add('hidden');
     }
   });

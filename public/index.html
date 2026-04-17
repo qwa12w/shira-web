@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة شراع</title>
+    <title>تطبيق شراع</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,36 +12,43 @@
 
     <!-- 1. شاشة الصيانة -->
     <div id="maintenance-screen" class="hidden">
-        <h1>⛵ الموقع تحت الصيانة</h1>
+        <h1>⛵ التطبيق تحت الصيانة</h1>
         <p>نعمل على تحديثات هامة، سنعود قريباً.</p>
     </div>
 
     <!-- 2. الواجهة الرئيسية -->
     <div id="main-app" class="hidden">
         <header class="header">
-            <button id="btn-about" class="nav-btn">عن شراع</button>
+            <button id="btn-about" class="nav-btn small">عن شراع</button>
+            
             <div id="logo-container" class="logo">
                 <span>شراع</span>
                 <span class="sailboat-icon">⛵</span>
             </div>
-            <div style="width: 80px;"></div>
+            
+            <button id="btn-contact" class="nav-btn small">تواصل معنا</button>
         </header>
 
         <main class="main-content">
             <div class="hero-section">
                 <h1 class="main-title">كل خدماتك في<br><span class="highlight">تطبيق واحد</span></h1>
-                <p class="subtitle">منصة البصرة الأولى للنقل والتسوق</p>
+                <p class="subtitle">تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
             </div>
 
-            <div class="services-grid">
-                <div class="service-card taxi-card" data-role="سائق تكسي">
-                    <div class="icon-circle"><span class="icon">🚗</span></div>
-                    <h3>سائق تكسي</h3>
-                </div>
+            <!-- الصف الأول: زبون | سائق تكسي -->
+            <div class="services-grid top-row">
                 <div class="service-card customer-card" data-role="زبون">
                     <div class="icon-circle"><span class="icon">👤</span></div>
                     <h3>زبون</h3>
                 </div>
+                <div class="service-card taxi-card" data-role="سائق تكسي">
+                    <div class="icon-circle"><span class="icon">🚗</span></div>
+                    <h3>سائق تكسي</h3>
+                </div>
+            </div>
+
+            <!-- الصف الثاني: بائع | ديلفري -->
+            <div class="services-grid bottom-row">
                 <div class="service-card seller-card" data-role="بائع">
                     <div class="icon-circle"><span class="icon">🏪</span></div>
                     <h3>بائع</h3>
@@ -57,7 +64,7 @@
     <!-- 3. شاشة التسجيل والدخول -->
     <div id="auth-screen" class="hidden">
         <div class="auth-container">
-            <button class="btn-back" id="back-to-main">← عودة للرئيسية</button>
+            <button class="btn-back" id="back-to-main">← عودة</button>
             <div class="auth-header">
                 <h2 id="auth-role-title">تسجيل الدخول</h2>
                 <p id="auth-role-subtitle">أدخل بياناتك للوصول إلى لوحة التحكم</p>
@@ -165,7 +172,7 @@
             <input type="password" id="admin-pass" placeholder="كلمة المرور">
             <button id="login-submit" class="btn-primary">دخول</button>
             <p class="error-msg hidden" id="login-error">بيانات خاطئة</p>
-            <button class="btn-back" id="back-to-home">عودة للموقع</button>
+            <button class="btn-back" id="back-to-home">عودة</button>
         </div>
     </div>
 
@@ -183,7 +190,7 @@
 
         <main class="admin-content">
             <section id="tab-dashboard" class="admin-tab active">
-                <h2>ملخص المنصة</h2>
+                <h2>ملخص التطبيق</h2>
                 <div class="stats-grid">
                     <div class="stat-card blue"><h3>المستخدمين</h3><span id="stat-users">0</span></div>
                     <div class="stat-card yellow"><h3>بانتظار الموافقة</h3><span id="stat-pending">0</span></div>
@@ -196,7 +203,7 @@
                 <div class="table-container">
                     <table id="users-table">
                         <thead>
-                            <tr><th>الاسم</th><th>الهاتف</th><ث>الدور</th><th>التسجيل</th><th>الحالة</th><th>إجراء</th></tr>
+                            <tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>التسجيل</th><th>الحالة</th><th>إجراء</th></tr>
                         </thead>
                         <tbody id="users-list"></tbody>
                     </table>
@@ -208,7 +215,7 @@
                 <div class="setting-card">
                     <div class="setting-info">
                         <h3>وضع الصيانة 🛠️</h3>
-                        <p>إخفاء الموقع عن الزوار</p>
+                        <p>إخفاء التطبيق عن الزوار</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="maintenance-toggle">
@@ -226,14 +233,24 @@
     <div class="modal-overlay hidden" id="about-modal">
         <div class="modal-content">
             <button class="close-modal">&times;</button>
-            <h2>عن شراع ⛵</h2>
-            <p>منصة البصرة الأولى للنقل الذكي والتجارة الإلكترونية.</p>
+            <h2>عن تطبيق شراع ⛵</h2>
+            <p>تطبيق شراع هو حلك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية في مكان واحد.</p>
+        </div>
+    </div>
+
+    <!-- 9. نافذة تواصل معنا -->
+    <div class="modal-overlay hidden" id="contact-modal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h2>تواصل معنا 📞</h2>
+            <p style="margin: 1rem 0;">للدعم الفني أو الاستفسارات:</p>
+            <p style="font-weight: 600; color: var(--primary);">support@shira.app</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-light);">فريق شراع جاهز لخدمتك 24/7</p>
         </div>
     </div>
 
     <!-- ملفات JavaScript -->
     <script src="js/database.js"></script>
     <script src="js/app.js"></script>
-    <!-- ✅ تم إزالة التحديث القسري - المزامنة ستكون ذكية عبر Supabase Realtime -->
 </body>
 </html>
