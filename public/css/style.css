@@ -25,7 +25,7 @@ body {
 }
 .hidden { display: none !important; }
 
-/* --- الهيدر والشعار في المنتصف --- */
+/* --- الهيدر - الشعار في الوسط والزر في اليسار --- */
 .header {
   background: #ffffff;
   padding: 1rem 2rem;
@@ -62,7 +62,6 @@ body {
 }
 #logo-container:hover { transform: scale(1.05); }
 .sailboat-icon { font-size: 2.2rem; }
-.header-spacer { width: 80px; }
 
 /* --- المحتوى الرئيسي والهيرو --- */
 .main-content { padding: 3rem 1rem; max-width: 500px; margin: 0 auto; }
@@ -105,8 +104,8 @@ body {
 .seller-card .icon-circle { background: #f3e8ff; }
 .delivery-card .icon-circle { background: #dcfce7; }
 
-/* --- تنسيقات أساسية للشاشات الجديدة (بدون تأثير على التصميم الرئيسي) --- */
-.auth-container, .pending-container, #blocked-screen, .login-box, .user-header, .admin-sidebar, .admin-content, .setting-card, .modal-content, .table-container {
+/* --- تنسيقات إضافية للشاشات الجديدة --- */
+.auth-container, .pending-container, #blocked-screen, .login-box {
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -128,21 +127,79 @@ body {
 .auth-tab { flex: 1; padding: 0.5rem; background: none; border: none; cursor: pointer; font-weight: 600; }
 .auth-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
 
-/* --- تنسيقات الإدارة --- */
+/* --- لوحة تحكم المستخدم --- */
+.user-header {
+  background: var(--card-bg); padding: 1rem 2rem;
+  box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center;
+}
+.user-info { display: flex; align-items: center; gap: 1rem; margin: 0 auto; }
+.role-badge {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+}
+.btn-logout {
+  background: #fee2e2; color: var(--danger); border: none; padding: 0.5rem 1rem;
+  border-radius: 8px; cursor: pointer; font-weight: 600;
+}
+.user-content { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+.welcome-card {
+  background: var(--card-bg); padding: 2rem; border-radius: var(--radius);
+  box-shadow: var(--shadow); text-align: center;
+}
+
+/* --- لوحة الإدارة --- */
 #admin-panel { display: flex; height: 100vh; background: var(--bg); text-align: right; }
 .admin-sidebar { width: 250px; background: #0f172a; color: white; padding: 1rem; display: flex; flex-direction: column; }
+.admin-logo { font-size: 1.4rem; font-weight: 800; margin-bottom: 2rem; text-align: center; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
 .admin-nav-btn { width: 100%; background: none; border: none; color: #94a3b8; padding: 10px; text-align: right; cursor: pointer; border-radius: 8px; margin-bottom: 5px; }
 .admin-nav-btn.active { background: #334155; color: white; }
+.logout-btn { margin-top: auto; background: var(--danger); border: none; color: white; padding: 0.8rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
 .admin-content { flex: 1; padding: 2rem; overflow-y: auto; }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.admin-tab { animation: fadeIn 0.3s ease; }
+.admin-tab.hidden { display: none; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- الإحصائيات --- */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+.stat-card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); text-align: center; }
+.stat-card h3 { font-size: 0.9rem; color: var(--text-light); margin-bottom: 0.5rem; }
+.stat-card span { font-size: 2.2rem; font-weight: 800; display: block; }
+.stat-card.blue span { color: var(--primary); }
+.stat-card.yellow span { color: var(--warning); }
+.stat-card.green span { color: var(--success); }
+
+/* --- الجداول --- */
+.table-container { background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); margin-top: 1rem; }
+table { width: 100%; border-collapse: collapse; }
 th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: center; }
+th { background: #f8fafc; color: var(--text-light); font-weight: 600; font-size: 0.9rem; }
 .btn-action { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin: 0 2px; }
 .btn-delete { background: #fee2e2; color: var(--danger); }
 
+/* --- الإعدادات --- */
+.setting-card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); margin-bottom: 1rem; }
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 26px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--success); }
+input:checked + .slider:before { transform: translateX(24px); }
+.btn-danger { background: var(--danger); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+/* --- النافذة المنبثقة --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: var(--card-bg); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px; position: relative; text-align: center; }
+.close-modal { position: absolute; top: 15px; left: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light); }
+
+/* --- التجاوب --- */
 @media (max-width: 768px) {
-  .header { grid-template-columns: auto 1fr; gap: 1rem; }
+  .header { padding: 1rem; grid-template-columns: auto 1fr; gap: 1rem; }
   #btn-about { justify-self: end; }
+  .main-title { font-size: 1.6rem; }
   .services-grid { grid-template-columns: 1fr; }
   #admin-panel { flex-direction: column; }
-  .admin-sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+  .admin-sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 0.5rem; }
+  .admin-logo { display: none; }
+  .admin-nav-btn { width: auto; white-space: nowrap; }
+  .logout-btn { display: none; }
 }
