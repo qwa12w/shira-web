@@ -127,7 +127,7 @@ async function checkSession() {
     const client = window.supabaseClient;
     if (!client) return;
 
-    const {  { session } } = await client.auth.getSession();
+const {  { session } } = await client.auth.getSession();
 
     if (session) {
       currentUser = session.user;
