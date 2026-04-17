@@ -1,31 +1,107 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// مع المزامنة الذكية والحفاظ على الحالة
-// [نسخة مصححة - تفعيل الأزرار]
+// [نسخة نهائية مصححة - أزرار تعمل 100%]
 // ==========================================
 
 let currentUser = null;
 let currentRole = null;
 let currentAuthMode = 'login';
+let appInitialized = false;
 
 // ==========================================
-// 1. التهيئة عند تحميل الصفحة
+// دالة بدء التطبيق الرئيسية
 // ==========================================
-document.addEventListener('DOMContentLoaded', async () => {
+async function startApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+  
   console.log('🚀 تهيئة التطبيق...');
   
-  // ✅ التأكد من تهيئة Supabase قبل أي استخدام
-  if (typeof window.supabaseClient === 'undefined') {
-    console.error('❌ لم يتم تهيئة عميل Supabase، تحقق من js/database.js');
-    return;
-  }
+  // انتظار قصير لضمان جاهزية كل شيء
+  await new Promise(resolve => setTimeout(resolve, 100));
   
   await restoreState();
   await checkSession();
   setupRealtimeSync();
   setupEventListeners();
   await checkMaintenanceMode();
-});
+  
+  console.log('✅ اكتملت تهيئة التطبيق');
+}
+
+// ==========================================
+// تهيئة ذكية لـ Supabase
+// ==========================================
+function ensureSupabaseReady(callback) {
+  // إذا كان جاهزاً فوراً
+  if (window.supabaseClient) {
+    callback();
+    return;
+  }
+  
+  // إذا كانت المكتبة موجودة لكن العميل غير مهيأ
+  if (typeof window.supabase !== 'undefined') {
+    try {
+      const { createClient } = window.supabase;
+      window.supabaseClient = createClient(
+        "https://qioiiidrwqvwzkveoxnm.supabase.co",
+        "sb_publishable_yLhyYMSCXttp1e_q_PAovA_zz1xgYDM"
+      );
+      console.log("✅ تم تهيئة Supabase");
+      callback();
+      return;
+    } catch (e) {
+      console.warn("⚠️ محاولة إعادة تهيئة...", e);
+    }
+  }
+  
+  // محاولة متكررة كل 200مللي ثانية لمدة 3 ثوانٍ كحد أقصى
+  let attempts = 0;
+  const maxAttempts = 15;
+  
+  const tryInit = () => {
+    attempts++;
+    
+    if (window.supabaseClient) {
+      callback();
+      return;
+    }
+    
+    if (typeof window.supabase !== 'undefined' && attempts < maxAttempts) {
+      try {
+        const { createClient } = window.supabase;
+        window.supabaseClient = createClient(
+          "https://qioiiidrwqvwzkveoxnm.supabase.co",
+          "sb_publishable_yLhyYMSCXttp1e_q_PAovA_zz1xgYDM"
+        );
+        console.log("✅ تم تهيئة Supabase (محاولة #" + attempts + ")");
+        callback();
+        return;
+      } catch (e) {
+        // استمر في المحاولة
+      }
+    }
+    
+    if (attempts < maxAttempts) {
+      setTimeout(tryInit, 200);
+    } else {
+      console.error("❌ فشل تهيئة Supabase بعد " + maxAttempts + " محاولات");
+    }
+  };
+  
+  tryInit();
+}
+
+// ==========================================
+// بدء التهيئة عند جاهزية الصفحة
+// ==========================================
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureSupabaseReady(startApp);
+  });
+} else {
+  ensureSupabaseReady(startApp);
+}
 
 // ==========================================
 // 2. استعادة الحالة المحفوظة
@@ -68,12 +144,14 @@ async function restoreState() {
 // ==========================================
 async function checkSession() {
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!window.supabaseClient) return;
+    
+    const {  { session } } = await supabaseClient.auth.getSession();
     
     if (session) {
       currentUser = session.user;
       
-      const { data: profile } = await supabaseClient
+      const {  profile } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
@@ -164,7 +242,11 @@ function setupEventListeners() {
     const role = card.dataset.role;
     console.log(`🔗 ربط بطاقة #${index + 1}: ${role}`);
     
-    card.addEventListener('click', () => {
+    // إزالة أي مستمع سابق لتجنب التكرار
+    const newCard = card.cloneNode(true);
+    card.parentNode.replaceChild(newCard, card);
+    
+    newCard.addEventListener('click', () => {
       console.log(`✅ نقر على: ${role}`);
       currentRole = role;
       showAuthScreen(currentRole);
@@ -173,76 +255,107 @@ function setupEventListeners() {
   });
   
   // زر العودة للرئيسية
-  document.getElementById('back-to-main')?.addEventListener('click', () => {
-    showScreen('main-app');
-    localStorage.setItem('shira_currentScreen', 'main-app');
-  });
+  const backToMain = document.getElementById('back-to-main');
+  if (backToMain) {
+    backToMain.onclick = () => {
+      showScreen('main-app');
+      localStorage.setItem('shira_currentScreen', 'main-app');
+    };
+  }
   
   // التبويبات (دخول / تسجيل)
   document.querySelectorAll('.auth-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.onclick = () => {
       document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       currentAuthMode = tab.dataset.mode;
       updateAuthForm();
-    });
+    };
   });
   
   // نموذج التسجيل/الدخول
-  document.getElementById('auth-form')?.addEventListener('submit', handleAuthSubmit);
+  const authForm = document.getElementById('auth-form');
+  if (authForm) {
+    authForm.onsubmit = handleAuthSubmit;
+  }
   
   // زر "عن شراع"
-  document.getElementById('btn-about')?.addEventListener('click', () => {
-    document.getElementById('about-modal')?.classList.remove('hidden');
-  });
+  const btnAbout = document.getElementById('btn-about');
+  if (btnAbout) {
+    btnAbout.onclick = () => {
+      const modal = document.getElementById('about-modal');
+      if (modal) modal.classList.remove('hidden');
+    };
+  }
   
   // زر "تواصل معنا"
-  document.getElementById('btn-contact')?.addEventListener('click', () => {
-    document.getElementById('contact-modal')?.classList.remove('hidden');
-  });
+  const btnContact = document.getElementById('btn-contact');
+  if (btnContact) {
+    btnContact.onclick = () => {
+      const modal = document.getElementById('contact-modal');
+      if (modal) modal.classList.remove('hidden');
+    };
+  }
   
   // إغلاق النوافذ المنبثقة
   document.querySelectorAll('.close-modal').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       document.getElementById('about-modal')?.classList.add('hidden');
       document.getElementById('contact-modal')?.classList.add('hidden');
-    });
+    };
   });
   
   // إغلاق النوافذ عند النقر خارجها
   ['about-modal', 'contact-modal'].forEach(modalId => {
     const modal = document.getElementById(modalId);
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.add('hidden');
-    });
+    if (modal) {
+      modal.onclick = (e) => {
+        if (e.target === modal) modal.classList.add('hidden');
+      };
+    }
   });
   
   // الشعار - دخول الإدارة
-  document.getElementById('logo-container')?.addEventListener('click', () => {
-    showScreen('admin-login');
-    localStorage.setItem('shira_currentScreen', 'admin-login');
-  });
+  const logoContainer = document.getElementById('logo-container');
+  if (logoContainer) {
+    logoContainer.onclick = () => {
+      showScreen('admin-login');
+      localStorage.setItem('shira_currentScreen', 'admin-login');
+    };
+  }
   
   // تسجيل دخول الإدارة
-  document.getElementById('login-submit')?.addEventListener('click', handleAdminLogin);
+  const loginSubmit = document.getElementById('login-submit');
+  if (loginSubmit) {
+    loginSubmit.onclick = handleAdminLogin;
+  }
   
-  document.getElementById('back-to-home')?.addEventListener('click', () => {
-    showScreen('main-app');
-    localStorage.setItem('shira_currentScreen', 'main-app');
-  });
+  const backToHome = document.getElementById('back-to-home');
+  if (backToHome) {
+    backToHome.onclick = () => {
+      showScreen('main-app');
+      localStorage.setItem('shira_currentScreen', 'main-app');
+    };
+  }
   
   // تسجيل الخروج من الإدارة
-  document.getElementById('logout-admin')?.addEventListener('click', () => {
-    showScreen('main-app');
-    localStorage.setItem('shira_currentScreen', 'main-app');
-  });
+  const logoutAdmin = document.getElementById('logout-admin');
+  if (logoutAdmin) {
+    logoutAdmin.onclick = () => {
+      showScreen('main-app');
+      localStorage.setItem('shira_currentScreen', 'main-app');
+    };
+  }
   
   // تسجيل الخروج من لوحة المستخدم
-  document.getElementById('logout-user')?.addEventListener('click', handleUserLogout);
+  const logoutUser = document.getElementById('logout-user');
+  if (logoutUser) {
+    logoutUser.onclick = handleUserLogout;
+  }
   
   // التنقل في لوحة الإدارة - مع الحفظ
   document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
@@ -264,30 +377,34 @@ function setupEventListeners() {
       } else if (btn.dataset.tab === 'dashboard') {
         loadDashboardStats();
       }
-    });
+    };
   });
   
   // وضع الصيانة
-  document.getElementById('maintenance-toggle')?.addEventListener('change', async (e) => {
-    const { data: settings } = await supabaseClient
-      .from('settings')
-      .select('*')
-      .eq('key', 'maintenance')
-      .single();
-    
-    if (settings) {
-      await supabaseClient
+  const maintenanceToggle = document.getElementById('maintenance-toggle');
+  if (maintenanceToggle) {
+    maintenanceToggle.onchange = async (e) => {
+      if (!window.supabaseClient) return;
+      const {  settings } = await supabaseClient
         .from('settings')
-        .update({ value: e.target.checked })
-        .eq('key', 'maintenance');
-    } else {
-      await supabaseClient
-        .from('settings')
-        .insert({ key: 'maintenance', value: e.target.checked });
-    }
-    
-    alert(e.target.checked ? 'تم تفعيل وضع الصيانة' : 'تم إيقاف وضع الصيانة');
-  });
+        .select('*')
+        .eq('key', 'maintenance')
+        .single();
+      
+      if (settings) {
+        await supabaseClient
+          .from('settings')
+          .update({ value: e.target.checked })
+          .eq('key', 'maintenance');
+      } else {
+        await supabaseClient
+          .from('settings')
+          .insert({ key: 'maintenance', value: e.target.checked });
+      }
+      
+      alert(e.target.checked ? 'تم تفعيل وضع الصيانة' : 'تم إيقاف وضع الصيانة');
+    };
+  }
   
   console.log('✅ اكتمال ربط جميع الأحداث');
 }
@@ -296,14 +413,19 @@ function setupEventListeners() {
 // 6. معالجة التسجيل والدخول
 // ==========================================
 async function handleAuthSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   
-  const phone = document.getElementById('auth-phone').value.trim();
-  const password = document.getElementById('auth-password').value;
+  if (!window.supabaseClient) {
+    showMsg(document.getElementById('auth-msg'), 'جاري الاتصال... يرجى الانتظار', 'error');
+    return;
+  }
+  
+  const phone = document.getElementById('auth-phone')?.value.trim();
+  const password = document.getElementById('auth-password')?.value;
   const name = document.getElementById('auth-name')?.value.trim();
   
   const msgEl = document.getElementById('auth-msg');
-  msgEl.classList.add('hidden');
+  if (msgEl) msgEl.classList.add('hidden');
   
   try {
     if (currentAuthMode === 'register') {
@@ -312,11 +434,11 @@ async function handleAuthSubmit(e) {
         return;
       }
       
-      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+      const {  authData, error: authError } = await supabaseClient.auth.signUp({
         email: `${phone}@shira.app`,
         password: password,
         options: {
-          data: {
+           {
             phone: phone,
             name: name,
             role: currentRole
@@ -356,7 +478,7 @@ async function handleAuthSubmit(e) {
       }, 1500);
       
     } else {
-      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+      const {  authData, error: authError } = await supabaseClient.auth.signInWithPassword({
         email: `${phone}@shira.app`,
         password: password
       });
@@ -365,7 +487,7 @@ async function handleAuthSubmit(e) {
       
       currentUser = authData.user;
       
-      const { data: profile } = await supabaseClient
+      const {  profile } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
@@ -394,6 +516,8 @@ async function handleAuthSubmit(e) {
 // 7. رفع الوثائق
 // ==========================================
 async function uploadDocuments(userId) {
+  if (!window.supabaseClient) return;
+  
   const fileInputs = {
     license: document.getElementById('doc-license'),
     personal: document.getElementById('doc-personal'),
@@ -416,7 +540,7 @@ async function uploadDocuments(userId) {
       if (uploadError) {
         console.error(`خطأ في رفع ${key}:`, uploadError);
       } else {
-        const { data: { publicUrl } } = supabaseClient.storage
+        const {  { publicUrl } } = supabaseClient.storage
           .from('shira-docs')
           .getPublicUrl(fileName);
         
@@ -464,8 +588,10 @@ function showScreen(screenId) {
 
 function showAuthScreen(role) {
   currentRole = role;
-  document.getElementById('auth-role-title').textContent = `تسجيل ${role}`;
-  document.getElementById('auth-role-subtitle').textContent = 'أدخل بياناتك للمتابعة';
+  const titleEl = document.getElementById('auth-role-title');
+  const subtitleEl = document.getElementById('auth-role-subtitle');
+  if (titleEl) titleEl.textContent = `تسجيل ${role}`;
+  if (subtitleEl) subtitleEl.textContent = 'أدخل بياناتك للمتابعة';
   
   updateAuthForm();
   
@@ -497,49 +623,56 @@ function updateAuthForm() {
   
   if (currentAuthMode === 'register') {
     nameGroup?.classList.remove('hidden');
-    submitBtn.textContent = 'إنشاء حساب';
+    if (submitBtn) submitBtn.textContent = 'إنشاء حساب';
   } else {
     nameGroup?.classList.add('hidden');
-    submitBtn.textContent = 'تسجيل الدخول';
+    if (submitBtn) submitBtn.textContent = 'تسجيل الدخول';
   }
 }
 
 function showUserDashboard(profile) {
-  document.getElementById('dash-user-name').textContent = profile.name;
-  document.getElementById('dash-user-role').textContent = profile.role;
-  document.getElementById('dash-role-title').textContent = profile.role;
+  const nameEl = document.getElementById('dash-user-name');
+  const roleEl = document.getElementById('dash-user-role');
+  const roleTitleEl = document.getElementById('dash-role-title');
+  
+  if (nameEl) nameEl.textContent = profile.name;
+  if (roleEl) roleEl.textContent = profile.role;
+  if (roleTitleEl) roleTitleEl.textContent = profile.role;
   
   const content = document.getElementById('dash-content');
-  content.innerHTML = `
-    <div class="welcome-card">
-      <h2>مرحباً ${profile.name} 👋</h2>
-      <p>أهلاً بك في لوحة تحكم ${profile.role}</p>
-      <p style="margin-top: 1rem; color: #64748b;">سيتم تفعيل الخدمات التفصيلية قريباً</p>
-    </div>
-  `;
+  if (content) {
+    content.innerHTML = `
+      <div class="welcome-card">
+        <h2>مرحباً ${profile.name} 👋</h2>
+        <p>أهلاً بك في لوحة تحكم ${profile.role}</p>
+        <p style="margin-top: 1rem; color: #64748b;">سيتم تفعيل الخدمات التفصيلية قريباً</p>
+      </div>
+    `;
+  }
 }
 
 function showBlockedScreen() {
-  const blockedDiv = document.createElement('div');
-  blockedDiv.id = 'blocked-screen';
-  blockedDiv.className = 'hidden';
-  blockedDiv.innerHTML = `
-    <div class="pending-container" style="text-align: center; padding: 3rem;">
-      <div style="font-size: 4rem; margin-bottom: 1rem;">🚫</div>
-      <h2>الحساب محظور</h2>
-      <p>تم حظر هذا الحساب من قبل الإدارة</p>
-      <p style="margin-top: 1rem; color: #64748b;">تواصل مع الإدارة لحل المشكلة</p>
-      <button class="btn-primary" onclick="location.reload()" style="margin-top: 1rem;">إعادة المحاولة</button>
-    </div>
-  `;
-  
-  if (!document.getElementById('blocked-screen')) {
+  const existing = document.getElementById('blocked-screen');
+  if (!existing) {
+    const blockedDiv = document.createElement('div');
+    blockedDiv.id = 'blocked-screen';
+    blockedDiv.className = 'hidden';
+    blockedDiv.innerHTML = `
+      <div class="pending-container" style="text-align: center; padding: 3rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🚫</div>
+        <h2>الحساب محظور</h2>
+        <p>تم حظر هذا الحساب من قبل الإدارة</p>
+        <p style="margin-top: 1rem; color: #64748b;">تواصل مع الإدارة لحل المشكلة</p>
+        <button class="btn-primary" onclick="location.reload()" style="margin-top: 1rem;">إعادة المحاولة</button>
+      </div>
+    `;
     document.body.appendChild(blockedDiv);
   }
   showScreen('blocked-screen');
 }
 
 function showMsg(element, text, type) {
+  if (!element) return;
   element.textContent = text;
   element.className = `auth-msg ${type === 'error' ? 'error' : 'success'}`;
   element.classList.remove('hidden');
@@ -549,21 +682,23 @@ function showMsg(element, text, type) {
 // 9. وظائف الإدارة
 // ==========================================
 async function handleAdminLogin() {
-  const user = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
+  const user = document.getElementById('admin-user')?.value;
+  const pass = document.getElementById('admin-pass')?.value;
   const errorMsg = document.getElementById('login-error');
   
   if (user === 'admin' && pass === '1234') {
-    errorMsg.classList.add('hidden');
+    if (errorMsg) errorMsg.classList.add('hidden');
     showScreen('admin-panel');
     localStorage.setItem('shira_currentScreen', 'admin-panel');
     loadDashboardStats();
   } else {
-    errorMsg.classList.remove('hidden');
+    if (errorMsg) errorMsg.classList.remove('hidden');
   }
 }
 
 async function loadDashboardStats() {
+  if (!window.supabaseClient) return;
+  
   const { count: userCount } = await supabaseClient
     .from('profiles')
     .select('*', { count: 'exact', head: true });
@@ -573,17 +708,23 @@ async function loadDashboardStats() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'قيد المراجعة');
   
-  document.getElementById('stat-users').textContent = userCount || 0;
-  document.getElementById('stat-pending').textContent = pendingCount || 0;
+  const statUsers = document.getElementById('stat-users');
+  const statPending = document.getElementById('stat-pending');
+  if (statUsers) statUsers.textContent = userCount || 0;
+  if (statPending) statPending.textContent = pendingCount || 0;
 }
 
 async function loadUsersTable() {
-  const { data: users } = await supabaseClient
+  if (!window.supabaseClient) return;
+  
+  const {  users } = await supabaseClient
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false });
   
   const tbody = document.getElementById('users-list');
+  if (!tbody) return;
+  
   tbody.innerHTML = '';
   
   users?.forEach(user => {
@@ -605,6 +746,7 @@ async function loadUsersTable() {
 }
 
 async function updateUserStatus(userId, newStatus) {
+  if (!window.supabaseClient) return;
   await supabaseClient
     .from('profiles')
     .update({ status: newStatus })
@@ -615,6 +757,7 @@ async function updateUserStatus(userId, newStatus) {
 }
 
 async function deleteUser(userId) {
+  if (!window.supabaseClient) return;
   if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
     await supabaseClient
       .from('profiles')
@@ -636,7 +779,9 @@ function getStatusColor(status) {
 }
 
 async function handleUserLogout() {
-  await supabaseClient.auth.signOut();
+  if (window.supabaseClient) {
+    await supabaseClient.auth.signOut();
+  }
   currentUser = null;
   currentRole = null;
   localStorage.removeItem('shira_currentScreen');
@@ -645,6 +790,8 @@ async function handleUserLogout() {
 }
 
 async function checkMaintenanceMode() {
+  if (!window.supabaseClient) return;
+  
   const { data } = await supabaseClient
     .from('settings')
     .select('value')
