@@ -1,6 +1,7 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
 // مع المزامنة الذكية والحفاظ على الحالة
+// [نسخة مصححة - تفعيل الأزرار]
 // ==========================================
 
 let currentUser = null;
@@ -13,19 +14,16 @@ let currentAuthMode = 'login';
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 تهيئة التطبيق...');
   
-  // استعادة الحالة المحفوظة
+  // ✅ التأكد من تهيئة Supabase قبل أي استخدام
+  if (typeof window.supabaseClient === 'undefined') {
+    console.error('❌ لم يتم تهيئة عميل Supabase، تحقق من js/database.js');
+    return;
+  }
+  
   await restoreState();
-  
-  // التحقق من وجود جلسة نشطة
   await checkSession();
-  
-  // إعداد المزامنة الذكية (Realtime)
   setupRealtimeSync();
-  
-  // إعداد الأحداث
   setupEventListeners();
-  
-  // التحقق من وضع الصيانة
   await checkMaintenanceMode();
 });
 
@@ -106,6 +104,8 @@ async function checkSession() {
 // 4. المزامنة الذكية (Realtime)
 // ==========================================
 function setupRealtimeSync() {
+  if (!window.supabaseClient) return;
+  
   supabaseClient
     .channel('profiles_changes')
     .on('postgres_changes', 
@@ -151,13 +151,22 @@ function setupRealtimeSync() {
 }
 
 // ==========================================
-// 5. إعداد الأحداث
+// 5. إعداد الأحداث ✅ تم الإصلاح
 // ==========================================
 function setupEventListeners() {
-  // النقر على بطاقات الخدمات
-  document.querySelectorAll('.service-card').forEach(card => {
+  console.log('🔗 ربط أحداث الأزرار...');
+  
+  // ✅ النقر على بطاقات الخدمات - الإصلاح الرئيسي
+  const serviceCards = document.querySelectorAll('.service-card');
+  console.log(`📦 تم العثور على ${serviceCards.length} بطاقة خدمة`);
+  
+  serviceCards.forEach((card, index) => {
+    const role = card.dataset.role;
+    console.log(`🔗 ربط بطاقة #${index + 1}: ${role}`);
+    
     card.addEventListener('click', () => {
-      currentRole = card.dataset.role;
+      console.log(`✅ نقر على: ${role}`);
+      currentRole = role;
       showAuthScreen(currentRole);
       localStorage.setItem('shira_currentScreen', 'auth-screen');
     });
@@ -187,7 +196,7 @@ function setupEventListeners() {
     document.getElementById('about-modal')?.classList.remove('hidden');
   });
   
-  // زر "تواصل معنا" ✨ جديد
+  // زر "تواصل معنا"
   document.getElementById('btn-contact')?.addEventListener('click', () => {
     document.getElementById('contact-modal')?.classList.remove('hidden');
   });
@@ -279,6 +288,8 @@ function setupEventListeners() {
     
     alert(e.target.checked ? 'تم تفعيل وضع الصيانة' : 'تم إيقاف وضع الصيانة');
   });
+  
+  console.log('✅ اكتمال ربط جميع الأحداث');
 }
 
 // ==========================================
