@@ -1,5 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
+// مع المزامنة الذكية والحفاظ على الحالة
 // ==========================================
 
 let currentUser = null;
@@ -12,8 +13,14 @@ let currentAuthMode = 'login';
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 تهيئة التطبيق...');
   
+  // استعادة الحالة المحفوظة
+  await restoreState();
+  
   // التحقق من وجود جلسة نشطة
   await checkSession();
+  
+  // إعداد المزامنة الذكية (Realtime)
+  setupRealtimeSync();
   
   // إعداد الأحداث
   setupEventListeners();
@@ -23,7 +30,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================
-// 2. التحقق من الجلسة
+// 2. استعادة الحالة المحفوظة
+// ==========================================
+async function restoreState() {
+  const savedScreen = localStorage.getItem('shira_currentScreen');
+  const savedTab = localStorage.getItem('shira_adminTab');
+  
+  if (savedScreen) {
+    // إظهار الشاشة المحفوظة مؤقتاً حتى نتحقق من الجلسة
+    const screen = document.getElementById(savedScreen);
+    if (screen) {
+      document.querySelectorAll('body > div').forEach(div => {
+        if (div.id !== 'about-modal') div.classList.add('hidden');
+      });
+      screen.classList.remove('hidden');
+    }
+  }
+  
+  if (savedTab && savedScreen === 'admin-panel') {
+    document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.tab === savedTab) btn.classList.add('active');
+    });
+    
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+      tab.classList.add('hidden');
+      tab.classList.remove('active');
+    });
+    
+    const activeTab = document.getElementById(`tab-${savedTab}`);
+    if (activeTab) {
+      activeTab.classList.remove('hidden');
+      activeTab.classList.add('active');
+    }
+  }
+}
+
+// ==========================================
+// 3. التحقق من الجلسة
 // ==========================================
 async function checkSession() {
   try {
@@ -44,24 +88,80 @@ async function checkSession() {
         if (profile.status === 'محظور') {
           showBlockedScreen();
         } else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') {
-          showPendingScreen();
+          showScreen('pending-screen');
         } else {
           // دخول ناجح - توجيه للوحة التحكم
           showUserDashboard(profile);
+          localStorage.setItem('shira_currentScreen', 'user-dashboard');
         }
       }
     } else {
       // لا توجد جلسة - إظهار الصفحة الرئيسية
       showScreen('main-app');
+      localStorage.setItem('shira_currentScreen', 'main-app');
     }
   } catch (error) {
     console.error('خطأ في التحقق من الجلسة:', error);
     showScreen('main-app');
+    localStorage.setItem('shira_currentScreen', 'main-app');
   }
 }
 
 // ==========================================
-// 3. إعداد الأحداث
+// 4. المزامنة الذكية (Realtime)
+// ==========================================
+function setupRealtimeSync() {
+  // الاشتراك في تحديثات المستخدمين (للإدارة)
+  supabaseClient
+    .channel('profiles_changes')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'profiles' },
+      (payload) => {
+        console.log('🔄 تحديث في المستخدمين:', payload);
+        
+        // إذا كنا في لوحة الإدارة، حدث البيانات
+        if (!document.getElementById('admin-panel').classList.contains('hidden')) {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            loadDashboardStats();
+            if (!document.getElementById('tab-users').classList.contains('hidden')) {
+              loadUsersTable();
+            }
+          }
+        }
+        
+        // إذا كان المستخدم الحالي تأثر بالتغيير
+        if (currentUser && payload.new?.id === currentUser.id) {
+          if (payload.new?.status === 'محظور') {
+            showBlockedScreen();
+          } else if (payload.new?.status === 'نشط' && currentRole !== 'زبون') {
+            // تم الموافقة على الحساب
+            location.reload();
+          }
+        }
+      }
+    )
+    .subscribe();
+  
+  // الاشتراك في تحديثات الإعدادات
+  supabaseClient
+    .channel('settings_changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'settings' },
+      (payload) => {
+        if (payload.new?.key === 'maintenance') {
+          if (payload.new?.value === true) {
+            showScreen('maintenance-screen');
+          }
+        }
+      }
+    )
+    .subscribe();
+  
+  console.log('✅ تم تفعيل المزامنة الذكية');
+}
+
+// ==========================================
+// 5. إعداد الأحداث
 // ==========================================
 function setupEventListeners() {
   // النقر على بطاقات الخدمات
@@ -69,12 +169,14 @@ function setupEventListeners() {
     card.addEventListener('click', () => {
       currentRole = card.dataset.role;
       showAuthScreen(currentRole);
+      localStorage.setItem('shira_currentScreen', 'auth-screen');
     });
   });
   
   // زر العودة للرئيسية
   document.getElementById('back-to-main')?.addEventListener('click', () => {
     showScreen('main-app');
+    localStorage.setItem('shira_currentScreen', 'main-app');
   });
   
   // التبويبات (دخول / تسجيل)
@@ -102,6 +204,7 @@ function setupEventListeners() {
   // الشعار - دخول الإدارة
   document.getElementById('logo-container')?.addEventListener('click', () => {
     showScreen('admin-login');
+    localStorage.setItem('shira_currentScreen', 'admin-login');
   });
   
   // تسجيل دخول الإدارة
@@ -109,24 +212,36 @@ function setupEventListeners() {
   
   document.getElementById('back-to-home')?.addEventListener('click', () => {
     showScreen('main-app');
+    localStorage.setItem('shira_currentScreen', 'main-app');
   });
   
   // تسجيل الخروج من الإدارة
   document.getElementById('logout-admin')?.addEventListener('click', () => {
     showScreen('main-app');
+    localStorage.setItem('shira_currentScreen', 'main-app');
   });
   
   // تسجيل الخروج من لوحة المستخدم
   document.getElementById('logout-user')?.addEventListener('click', handleUserLogout);
   
-  // التنقل في لوحة الإدارة
+  // التنقل في لوحة الإدارة - مع الحفظ
   document.querySelectorAll('.admin-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
-      document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
-      document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+      document.querySelectorAll('.admin-tab').forEach(t => {
+        t.classList.add('hidden');
+        t.classList.remove('active');
+      });
+      
+      const tabId = `tab-${btn.dataset.tab}`;
+      const activeTab = document.getElementById(tabId);
+      if (activeTab) {
+        activeTab.classList.remove('hidden');
+        activeTab.classList.add('active');
+        localStorage.setItem('shira_adminTab', btn.dataset.tab);
+      }
       
       if (btn.dataset.tab === 'users') {
         loadUsersTable();
@@ -160,7 +275,7 @@ function setupEventListeners() {
 }
 
 // ==========================================
-// 4. معالجة التسجيل والدخول
+// 6. معالجة التسجيل والدخول
 // ==========================================
 async function handleAuthSubmit(e) {
   e.preventDefault();
@@ -182,7 +297,7 @@ async function handleAuthSubmit(e) {
       
       // إنشاء حساب في Supabase Auth
       const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-        email: `${phone}@shira.app`, // نستخدم الهاتف كإيميل
+        email: `${phone}@shira.app`,
         password: password,
         options: {
           data: {
@@ -218,9 +333,11 @@ async function handleAuthSubmit(e) {
       
       setTimeout(() => {
         if (currentRole === 'زبون') {
-          checkSession();
+          showUserDashboard({ name, phone, role: currentRole });
+          localStorage.setItem('shira_currentScreen', 'user-dashboard');
         } else {
-          showPendingScreen();
+          showScreen('pending-screen');
+          localStorage.setItem('shira_currentScreen', 'pending-screen');
         }
       }, 1500);
       
@@ -247,10 +364,13 @@ async function handleAuthSubmit(e) {
       // التحقق من الحالة
       if (profile.status === 'محظور') {
         showBlockedScreen();
+        localStorage.setItem('shira_currentScreen', 'blocked-screen');
       } else if (profile.status === 'قيد المراجعة') {
-        showPendingScreen();
+        showScreen('pending-screen');
+        localStorage.setItem('shira_currentScreen', 'pending-screen');
       } else {
         showUserDashboard(profile);
+        localStorage.setItem('shira_currentScreen', 'user-dashboard');
       }
     }
   } catch (error) {
@@ -260,7 +380,7 @@ async function handleAuthSubmit(e) {
 }
 
 // ==========================================
-// 5. رفع الوثائق
+// 7. رفع الوثائق
 // ==========================================
 async function uploadDocuments(userId) {
   const fileInputs = {
@@ -318,7 +438,7 @@ async function uploadDocuments(userId) {
 }
 
 // ==========================================
-// 6. عرض الشاشات
+// 8. عرض الشاشات
 // ==========================================
 function showScreen(screenId) {
   document.querySelectorAll('body > div').forEach(div => {
@@ -330,6 +450,7 @@ function showScreen(screenId) {
   const screen = document.getElementById(screenId);
   if (screen) {
     screen.classList.remove('hidden');
+    localStorage.setItem('shira_currentScreen', screenId);
   }
 }
 
@@ -338,10 +459,8 @@ function showAuthScreen(role) {
   document.getElementById('auth-role-title').textContent = `تسجيل ${role}`;
   document.getElementById('auth-role-subtitle').textContent = 'أدخل بياناتك للمتابعة';
   
-  // إظهار/إخفاء حقل الاسم حسب الوضع
   updateAuthForm();
   
-  // إظهار حقول الوثائق إذا لزم الأمر
   const docsSection = document.getElementById('documents-section');
   const vehicleSection = document.getElementById('vehicle-section');
   const bikeSection = document.getElementById('bike-section');
@@ -362,8 +481,6 @@ function showAuthScreen(role) {
       bikeSection?.classList.add('hidden');
     }
   }
-  
-  showScreen('auth-screen');
 }
 
 function updateAuthForm() {
@@ -384,7 +501,6 @@ function showUserDashboard(profile) {
   document.getElementById('dash-user-role').textContent = profile.role;
   document.getElementById('dash-role-title').textContent = profile.role;
   
-  // محتوى مخصص لكل دور
   const content = document.getElementById('dash-content');
   content.innerHTML = `
     <div class="welcome-card">
@@ -393,12 +509,6 @@ function showUserDashboard(profile) {
       <p style="margin-top: 1rem; color: #64748b;">سيتم تفعيل الخدمات التفصيلية قريباً</p>
     </div>
   `;
-  
-  showScreen('user-dashboard');
-}
-
-function showPendingScreen() {
-  showScreen('pending-screen');
 }
 
 function showBlockedScreen() {
@@ -414,7 +524,10 @@ function showBlockedScreen() {
       <button class="btn-primary" onclick="location.reload()" style="margin-top: 1rem;">إعادة المحاولة</button>
     </div>
   `;
-  document.body.appendChild(blockedDiv);
+  
+  if (!document.getElementById('blocked-screen')) {
+    document.body.appendChild(blockedDiv);
+  }
   showScreen('blocked-screen');
 }
 
@@ -425,7 +538,7 @@ function showMsg(element, text, type) {
 }
 
 // ==========================================
-// 7. وظائف الإدارة
+// 9. وظائف الإدارة
 // ==========================================
 async function handleAdminLogin() {
   const user = document.getElementById('admin-user').value;
@@ -435,6 +548,7 @@ async function handleAdminLogin() {
   if (user === 'admin' && pass === '1234') {
     errorMsg.classList.add('hidden');
     showScreen('admin-panel');
+    localStorage.setItem('shira_currentScreen', 'admin-panel');
     loadDashboardStats();
   } else {
     errorMsg.classList.remove('hidden');
@@ -442,12 +556,10 @@ async function handleAdminLogin() {
 }
 
 async function loadDashboardStats() {
-  // عدد المستخدمين
   const { count: userCount } = await supabaseClient
     .from('profiles')
     .select('*', { count: 'exact', head: true });
   
-  // عدد بانتظار الموافقة
   const { count: pendingCount } = await supabaseClient
     .from('profiles')
     .select('*', { count: 'exact', head: true })
@@ -519,6 +631,8 @@ async function handleUserLogout() {
   await supabaseClient.auth.signOut();
   currentUser = null;
   currentRole = null;
+  localStorage.removeItem('shira_currentScreen');
+  localStorage.removeItem('shira_adminTab');
   showScreen('main-app');
 }
 
@@ -529,8 +643,9 @@ async function checkMaintenanceMode() {
     .eq('key', 'maintenance')
     .single();
   
-  if (data?.value === true) {
+  if (data?.value === true && !currentUser) {
     showScreen('maintenance-screen');
+    localStorage.setItem('shira_currentScreen', 'maintenance-screen');
   }
 }
 
