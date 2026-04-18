@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية - تصميم متجاوب + 4 أزرار]
+// [النسخة النهائية - إصلاح جميع الأخطاء]
 // ==========================================
 
 var CONFIG = {
@@ -108,7 +108,6 @@ function showScreen(id) {
 function restoreScreen() {
   var saved = localStorage.getItem('shira_screen');
   var savedTab = localStorage.getItem('shira_admin_tab');
-  
   var savedRole = localStorage.getItem('shira_role');
   if (savedRole) app.currentRole = savedRole;
   
@@ -318,7 +317,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة
+// 8. المصادقة ✅ مصحح (data: { ... })
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -363,10 +362,11 @@ async function handleAuth(e) {
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
       console.log('جاري إنشاء حساب لـ:', phone);
       
+      // ✅ تصحيح الصياغة هنا
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: {  { phone: phone, name: name, role: currentRole } }
+        options: { data: { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) {
@@ -522,7 +522,7 @@ function uploadDocs(uid) {
 }
 
 // ==========================================
-// 9. لوحة المستخدم ✅ تصميم جديد متجاوب
+// 9. لوحة المستخدم
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
@@ -570,7 +570,6 @@ function showUserDashboard(p) {
     
     var c = document.getElementById('dash-content');
     if (c) {
-      // ✅ التصميم الجديد المتجاوب - 4 أزرار
       c.innerHTML = 
         '<div class="profile-card" style="background:#fff;border-radius:20px;padding:2rem;margin:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);">' +
           '<div style="text-align:center;">' +
@@ -583,19 +582,19 @@ function showUserDashboard(p) {
         '</div>' +
         
         '<div class="services-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;padding:1rem;">' +
-          '<button onclick="requestService(\'taxi\')" class="service-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(102,126,234,0.3);transition:transform 0.2s;">' +
+          '<button onclick="requestService(\'taxi\')" class="service-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(102,126,234,0.3);">' +
             '<div style="font-size:3rem;margin-bottom:0.5rem;">🚗</div>' +
             '<div style="font-size:1.1rem;font-weight:bold;">طلب تكسي</div>' +
           '</button>' +
-          '<button onclick="requestService(\'delivery\')" class="service-btn" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(245,87,108,0.3);transition:transform 0.2s;">' +
+          '<button onclick="requestService(\'delivery\')" class="service-btn" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(245,87,108,0.3);">' +
             '<div style="font-size:3rem;margin-bottom:0.5rem;">🏍️</div>' +
             '<div style="font-size:1.1rem;font-weight:bold;">طلب ديلفري</div>' +
           '</button>' +
-          '<button onclick="requestService(\'shopping\')" class="service-btn" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(79,172,254,0.3);transition:transform 0.2s;">' +
+          '<button onclick="requestService(\'shopping\')" class="service-btn" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(79,172,254,0.3);">' +
             '<div style="font-size:3rem;margin-bottom:0.5rem;">🛒</div>' +
             '<div style="font-size:1.1rem;font-weight:bold;">تسوق</div>' +
           '</button>' +
-          '<button onclick="shareWithShira()" class="service-btn" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(67,233,123,0.3);transition:transform 0.2s;">' +
+          '<button onclick="shareWithShira()" class="service-btn" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(67,233,123,0.3);">' +
             '<div style="font-size:3rem;margin-bottom:0.5rem;">⛵</div>' +
             '<div style="font-size:1.1rem;font-weight:bold;">مشاركة مع شراع</div>' +
           '</button>' +
@@ -612,10 +611,8 @@ function showUserDashboard(p) {
         setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 100);
       }
       
-      // ربط الأحداث
       document.getElementById('edit-profile-btn').onclick = function() { showProfileEditor(); };
       
-      // دوال الأزرار الأربعة
       window.requestService = function(type) {
         var serviceName = type === 'taxi' ? 'تكسي' : type === 'delivery' ? 'ديلفري' : 'تسوق';
         if (confirm('هل تريد طلب خدمة ' + serviceName + '؟')) {
@@ -789,6 +786,7 @@ function initOrderMap(lat, lng) {
   });
 }
 
+// ✅ تصحيح الصياغة هنا أيضاً
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
   if (!c || !app.currentUser) return;
@@ -828,7 +826,9 @@ function saveProfile() {
   var password = document.getElementById('edit-password')?.value;
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
-  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
+  
+  // ✅ تصحيح الصياغة هنا أيضاً
+  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
