@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [التصميم الاحترافي ثلاثي الأبعاد - مصحح]
+// [التصميم الاحترافي ثلاثي الأبعاد - مصحح 100%]
 // ==========================================
 
 var CONFIG = {
@@ -358,7 +358,7 @@ async function handleAuth(e) {
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: {  { phone: phone, name: name, role: currentRole } }
+        options: { data: { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) throw signUpResult.error;
@@ -539,7 +539,6 @@ function showUserDashboard(p) {
       var initials = p.name ? p.name.charAt(0) : '?';
       
       c.innerHTML = 
-        // 🔝 الشريط العلوي
         '<div class="top-bar" style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:0 0 24px 24px;margin:-1rem -1rem 1rem -1rem;box-shadow:0 8px 32px rgba(102,126,234,0.4);">' +
           '<div style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;" onclick="showProfileEditor()">' +
             '<div style="width:42px;height:42px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.1rem;border:2px solid rgba(255,255,255,0.5);backdrop-filter:blur(10px);">' + initials + '</div>' +
@@ -554,7 +553,6 @@ function showUserDashboard(p) {
           '</div>' +
         '</div>' +
         
-        // 👤 بطاقة الملف الشخصي المصغرة
         '<div class="profile-mini-card" style="background:#fff;border-radius:20px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
             '<div style="display:flex;align-items:center;gap:1rem;">' +
@@ -572,31 +570,26 @@ function showUserDashboard(p) {
           '</div>' +
         '</div>' +
         
-        // 🎯 شبكة الأزرار الثلاثية الأبعاد
         '<div class="services-grid-3d" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.8rem;padding:0.5rem;margin-bottom:1rem;">' +
           
-          // زر التكسي
           '<button onclick="requestService(\'taxi\')" style="background:linear-gradient(145deg,#667eea 0%,#5a67d8 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #4c51bf, 0 6px 12px rgba(102,126,234,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'">' +
             '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
             '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🚗</div>' +
             '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب تكسي</div>' +
           '</button>' +
           
-          // زر الديلفري
           '<button onclick="requestService(\'delivery\')" style="background:linear-gradient(145deg,#f093fb 0%,#e056a0 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #c0448a, 0 6px 12px rgba(240,147,251,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'">' +
             '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
             '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🏍️</div>' +
             '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب ديلفري</div>' +
           '</button>' +
           
-          // زر التسوق
           '<button onclick="requestService(\'shopping\')" style="background:linear-gradient(145deg,#4facfe 0%,#3a8fd9 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2d7bc0, 0 6px 12px rgba(79,172,254,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'">' +
             '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
             '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🛒</div>' +
             '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">تسوق</div>' +
           '</button>' +
           
-          // زر المشاركة
           '<button onclick="shareWithShira()" style="background:linear-gradient(145deg,#43e97b 0%,#38c96a 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2db85a, 0 6px 12px rgba(67,233,123,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'">' +
             '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
             '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">⛵</div>' +
@@ -604,7 +597,6 @@ function showUserDashboard(p) {
           '</button>' +
         '</div>' +
         
-        // 🗺️ الخريطة
         '<div class="map-section-3d" style="background:#fff;border-radius:20px;padding:1rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
           '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">' +
             '<span style="font-size:1.2rem;">📍</span>' +
@@ -629,7 +621,7 @@ function showUserDashboard(p) {
       };
       
       window.shareWithShira = function() {
-        alert('شكراً لمشاركتك مع شراع! ⛵🚀\nسيتم التواصل معك قريباً');
+        alert('شكراً لمشاركتك مع شراع! ⛵\nسيتم التواصل معك قريباً');
       };
       
       window.contactAdmin = function() {
@@ -813,7 +805,7 @@ function initOrderMap(lat, lng) {
 }
 
 // ==========================================
-// 12. تعديل الملف الشخصي ✅ مصحح
+// 12. تعديل الملف الشخصي ✅ مصحح نهائياً
 // ==========================================
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
@@ -850,6 +842,7 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
+// ✅ التصحيح النهائي هنا - إضافة data
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
@@ -858,8 +851,7 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  // ✅ التصحيح هنا: إزالة القوس الزائد وإضافة data
-  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
