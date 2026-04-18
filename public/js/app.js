@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية - إصلاح جميع الأخطاء]
+// [التصميم الاحترافي ثلاثي الأبعاد]
 // ==========================================
 
 var CONFIG = {
@@ -142,7 +142,6 @@ function checkSession() {
     restoreLocation();
     
     if (session) {
-      console.log('✅ جلسة نشطة:', session.user.id);
       app.currentUser = session.user;
       
       client.from('profiles').select('*').eq('id', session.user.id).single().then(function(profRes) {
@@ -154,12 +153,9 @@ function checkSession() {
         
         var profile = profRes.data;
         if (!profile) {
-          console.log('لا يوجد ملف شخصي');
           showScreen('main-app');
           return;
         }
-        
-        console.log('الملف الشخصي:', profile);
         
         if (profile.status === 'محظور') {
           showScreen('blocked-screen');
@@ -175,7 +171,6 @@ function checkSession() {
          showScreen('main-app');
       });
     } else {
-      console.log('لا توجد جلسة نشطة');
       showScreen('main-app');
     }
   }).catch(function(e) { 
@@ -317,7 +312,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة ✅ مصحح (data: { ... })
+// 8. المصادقة
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -350,7 +345,6 @@ async function handleAuth(e) {
   }
 
   var currentRole = app.currentRole || localStorage.getItem('shira_role') || 'زبون';
-  console.log('الدور الحالي:', currentRole);
 
   try {
     if (app.authMode === 'register') {
@@ -360,26 +354,17 @@ async function handleAuth(e) {
       }
       
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
-      console.log('جاري إنشاء حساب لـ:', phone);
       
-      // ✅ تصحيح الصياغة هنا
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: { data: { phone: phone, name: name, role: currentRole } }
+        options: {  { phone: phone, name: name, role: currentRole } }
       });
       
-      if (signUpResult.error) {
-        console.error('خطأ في التسجيل:', signUpResult.error);
-        throw signUpResult.error;
-      }
-      
-      if (!signUpResult.data || !signUpResult.data.user) {
-        throw new Error('فشل إنشاء الحساب');
-      }
+      if (signUpResult.error) throw signUpResult.error;
+      if (!signUpResult.data || !signUpResult.data.user) throw new Error('فشل إنشاء الحساب');
       
       var userId = signUpResult.data.user.id;
-      console.log('✅ تم إنشاء الحساب في Auth:', userId);
       
       var loc = await getCurrentLocation();
       
@@ -393,20 +378,11 @@ async function handleAuth(e) {
         longitude: loc.lng
       };
       
-      console.log('بيانات الملف:', profileData);
-      
       var profileResult = await client.from('profiles').insert(profileData);
       
-      if (profileResult.error) {
-        console.error('❌ خطأ في إنشاء الملف:', profileResult.error);
-        throw profileResult.error;
-      }
+      if (profileResult.error) throw profileResult.error;
       
-      console.log('✅ تم إنشاء الملف الشخصي بنجاح');
-      
-      if (currentRole !== 'زبون') {
-        await uploadDocs(userId);
-      }
+      if (currentRole !== 'زبون') await uploadDocs(userId);
       
       var successMsg = '✅ تم إنشاء الحساب بنجاح! ';
       successMsg += (currentRole === 'زبون') ? 'جاري التوجيه...' : 'بانتظار موافقة الإدارة';
@@ -433,7 +409,6 @@ async function handleAuth(e) {
       }, 1000);
       
     } else {
-      console.log('جاري تسجيل الدخول لـ:', phone);
       showMsg(msgEl, 'جاري تسجيل الدخول...', 'success');
       
       var signInResult = await client.auth.signInWithPassword({ 
@@ -441,25 +416,16 @@ async function handleAuth(e) {
         password: pass 
       });
       
-      if (signInResult.error) {
-        console.error('خطأ في تسجيل الدخول:', signInResult.error);
-        throw signInResult.error;
-      }
+      if (signInResult.error) throw signInResult.error;
       
       app.currentUser = signInResult.data.user;
-      console.log('✅ تم تسجيل الدخول:', app.currentUser.id);
       
       var profileResult = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
       
-      if (profileResult.error) {
-        console.error('خطأ في جلب الملف:', profileResult.error);
-        throw profileResult.error;
-      }
+      if (profileResult.error) throw profileResult.error;
       
       var profile = profileResult.data;
       if (!profile) throw new Error('الملف الشخصي غير موجود');
-      
-      console.log('الملف الشخصي:', profile);
       
       if (profile.status === 'محظور') {
         showScreen('blocked-screen');
@@ -522,7 +488,7 @@ function uploadDocs(uid) {
 }
 
 // ==========================================
-// 9. لوحة المستخدم
+// 9. لوحة المستخدم ✅ التصميم الاحترافي الجديد
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
@@ -570,58 +536,118 @@ function showUserDashboard(p) {
     
     var c = document.getElementById('dash-content');
     if (c) {
+      var initials = p.name ? p.name.charAt(0) : '?';
+      
       c.innerHTML = 
-        '<div class="profile-card" style="background:#fff;border-radius:20px;padding:2rem;margin:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);">' +
-          '<div style="text-align:center;">' +
-            '<div style="width:80px;height:80px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:50%;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;">' + p.name.charAt(0) + '</div>' +
-            '<h2 style="margin:0.5rem 0;color:#1a202c;">' + p.name + '</h2>' +
-            '<span class="role-badge" style="background:#667eea;color:#fff;padding:0.5rem 1.5rem;border-radius:20px;font-size:0.9rem;">' + p.role + '</span>' +
-            '<p style="margin:1rem 0;color:#718096;">📱 ' + p.phone + '</p>' +
-            '<button id="edit-profile-btn" class="btn-secondary" style="background:#edf2f7;color:#4a5568;padding:0.75rem 2rem;border-radius:12px;border:none;cursor:pointer;margin-top:0.5rem;">✏️ تعديل الملف</button>' +
+        // 🔝 الشريط العلوي
+        '<div class="top-bar" style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:0 0 24px 24px;margin:-1rem -1rem 1rem -1rem;box-shadow:0 8px 32px rgba(102,126,234,0.4);">' +
+          '<div style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;" onclick="showProfileEditor()">' +
+            '<div style="width:42px;height:42px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.1rem;border:2px solid rgba(255,255,255,0.5);backdrop-filter:blur(10px);">' + initials + '</div>' +
+            '<div>' +
+              '<div style="color:#fff;font-weight:600;font-size:0.95rem;">' + p.name + '</div>' +
+              '<div style="color:rgba(255,255,255,0.8);font-size:0.75rem;">📍 ' + loc.lat.toFixed(3) + ', ' + loc.lng.toFixed(3) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:0.5rem;">' +
+            '<button onclick="contactAdmin()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);transition:all 0.3s;" onmouseover="this.style.background=\'rgba(255,255,255,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.2)\'">📞</button>' +
+            '<button onclick="handleLogout()" style="background:rgba(255,80,80,0.3);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);transition:all 0.3s;" onmouseover="this.style.background=\'rgba(255,80,80,0.5)\'" onmouseout="this.style.background=\'rgba(255,80,80,0.3)\'">🚪</button>' +
           '</div>' +
         '</div>' +
         
-        '<div class="services-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;padding:1rem;">' +
-          '<button onclick="requestService(\'taxi\')" class="service-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(102,126,234,0.3);">' +
-            '<div style="font-size:3rem;margin-bottom:0.5rem;">🚗</div>' +
-            '<div style="font-size:1.1rem;font-weight:bold;">طلب تكسي</div>' +
+        // 👤 بطاقة الملف الشخصي المصغرة
+        '<div class="profile-mini-card" style="background:#fff;border-radius:20px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<div style="display:flex;align-items:center;gap:1rem;">' +
+              '<div style="width:60px;height:60px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:bold;box-shadow:0 8px 20px rgba(102,126,234,0.35);">' + initials + '</div>' +
+              '<div>' +
+                '<h3 style="margin:0;font-size:1.15rem;color:#1a202c;">' + p.name + '</h3>' +
+                '<span style="display:inline-block;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;margin-top:0.3rem;font-weight:500;">👤 ' + p.role + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<button onclick="showProfileEditor()" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;width:42px;height:42px;border-radius:14px;cursor:pointer;font-size:1.2rem;box-shadow:0 4px 15px rgba(102,126,234,0.35);transition:all 0.3s;transform:perspective(100px) rotateY(0deg);" onmouseover="this.style.transform=\'perspective(100px) rotateY(5deg) scale(1.05)\'" onmouseout="this.style.transform=\'perspective(100px) rotateY(0deg) scale(1)\'">✏️</button>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0;">' +
+            '<span style="font-size:1rem;">📱</span>' +
+            '<span style="color:#718096;font-size:0.95rem;direction:ltr;">' + p.phone + '</span>' +
+          '</div>' +
+        '</div>' +
+        
+        // 🎯 شبكة الأزرار الثلاثية الأبعاد
+        '<div class="services-grid-3d" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.8rem;padding:0.5rem;margin-bottom:1rem;">' +
+          
+          // زر التكسي
+          '<button onclick="requestService(\'taxi\')" style="background:linear-gradient(145deg,#667eea 0%,#5a67d8 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #4c51bf, 0 6px 12px rgba(102,126,234,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'">' +
+            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
+            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🚗</div>' +
+            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب تكسي</div>' +
           '</button>' +
-          '<button onclick="requestService(\'delivery\')" class="service-btn" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(245,87,108,0.3);">' +
-            '<div style="font-size:3rem;margin-bottom:0.5rem;">🏍️</div>' +
-            '<div style="font-size:1.1rem;font-weight:bold;">طلب ديلفري</div>' +
+          
+          // زر الديلفري
+          '<button onclick="requestService(\'delivery\')" style="background:linear-gradient(145deg,#f093fb 0%,#e056a0 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #c0448a, 0 6px 12px rgba(240,147,251,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'">' +
+            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
+            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🏍️</div>' +
+            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب ديلفري</div>' +
           '</button>' +
-          '<button onclick="requestService(\'shopping\')" class="service-btn" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(79,172,254,0.3);">' +
-            '<div style="font-size:3rem;margin-bottom:0.5rem;">🛒</div>' +
-            '<div style="font-size:1.1rem;font-weight:bold;">تسوق</div>' +
+          
+          // زر التسوق
+          '<button onclick="requestService(\'shopping\')" style="background:linear-gradient(145deg,#4facfe 0%,#3a8fd9 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2d7bc0, 0 6px 12px rgba(79,172,254,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'">' +
+            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
+            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🛒</div>' +
+            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">تسوق</div>' +
           '</button>' +
-          '<button onclick="shareWithShira()" class="service-btn" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(67,233,123,0.3);">' +
-            '<div style="font-size:3rem;margin-bottom:0.5rem;">⛵</div>' +
-            '<div style="font-size:1.1rem;font-weight:bold;">مشاركة مع شراع</div>' +
+          
+          // زر المشاركة
+          '<button onclick="shareWithShira()" style="background:linear-gradient(145deg,#43e97b 0%,#38c96a 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2db85a, 0 6px 12px rgba(67,233,123,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'">' +
+            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
+            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">⛵</div>' +
+            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">مشاركة شراع</div>' +
           '</button>' +
         '</div>' +
         
-        '<div class="map-section" style="padding:1rem;">' +
-          '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;font-weight:bold;">📍 موقعك الحالي:</label>' +
-          '<div id="order-map" style="height:250px;background:#f7fafc;border-radius:16px;"></div>' +
+        // 🗺️ الخريطة
+        '<div class="map-section-3d" style="background:#fff;border-radius:20px;padding:1rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
+          '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">' +
+            '<span style="font-size:1.2rem;">📍</span>' +
+            '<span style="font-weight:600;color:#1a202c;font-size:0.95rem;">موقعك الحالي</span>' +
+          '</div>' +
+          '<div id="order-map" style="height:200px;background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%);border-radius:16px;overflow:hidden;border:2px solid #e2e8f0;"></div>' +
           '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
           '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
+          '<button onclick="updateLocation()" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:0.8rem;border-radius:14px;cursor:pointer;font-size:0.9rem;font-weight:600;box-shadow:0 4px 12px rgba(102,126,234,0.3);transition:all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 16px rgba(102,126,234,0.4)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 4px 12px rgba(102,126,234,0.3)\'">🔄 تحديث الموقع</button>' +
         '</div>';
       
+      // تهيئة الخريطة
       if (typeof L !== 'undefined') {
-        setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 100);
+        setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 200);
       }
       
-      document.getElementById('edit-profile-btn').onclick = function() { showProfileEditor(); };
-      
+      // ربط الدوال
       window.requestService = function(type) {
         var serviceName = type === 'taxi' ? 'تكسي' : type === 'delivery' ? 'ديلفري' : 'تسوق';
-        if (confirm('هل تريد طلب خدمة ' + serviceName + '؟')) {
+        var icons = { taxi: '🚗', delivery: '🏍️', shopping: '🛒' };
+        if (confirm('هل تريد طلب خدمة ' + serviceName + ' ' + icons[type] + '؟')) {
           createOrder(type);
         }
       };
       
       window.shareWithShira = function() {
-        alert('شكراً لمشاركتك مع شراع! 🚀\nسيتم التواصل معك قريباً');
+        alert('شكراً لمشاركتك مع شراع! ⛵🚀\nسيتم التواصل معك قريباً');
+      };
+      
+      window.contactAdmin = function() {
+        alert('📞 للتواصل مع الإدارة:\n\n📧 support@shira.app\n📱 07700000000');
+      };
+      
+      window.updateLocation = function() {
+        getCurrentLocation().then(function(loc) {
+          document.getElementById('order-lat').value = loc.lat;
+          document.getElementById('order-lng').value = loc.lng;
+          if (typeof L !== 'undefined') {
+            var mapEl = document.getElementById('order-map');
+            if (mapEl) { mapEl.innerHTML = ''; initOrderMap(loc.lat, loc.lng); }
+          }
+          alert('✅ تم تحديث موقعك بنجاح');
+        });
       };
       
       window.createOrder = function(serviceType) {
@@ -685,7 +711,6 @@ function loadStats() {
       console.error('خطأ في الإحصائيات:', results[0].error);
       return;
     }
-    
     var su = document.getElementById('stat-users');
     var sp = document.getElementById('stat-pending');
     if (su) su.textContent = results[0].count || 0;
@@ -699,35 +724,37 @@ function loadUsersTable() {
   var c = window.supabaseClient; 
   if (!c) return;
   
-  c.from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .then(function(res) {
-      if (res.error) {
-        console.error('خطأ في جلب المستخدمين:', res.error);
-        return;
-      }
-      
-      var users = res.data;
-      var tbody = document.getElementById('users-list');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      
-      if (users) {
-        users.forEach(function(u) {
-          var tr = document.createElement('tr');
-          var actions = '';
-          if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
-          if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
-          actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
-          tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td><td>' + actions + '</td>';
-          tbody.appendChild(tr);
-        });
-      }
-    })
-    .catch(function(err) {
-      console.error('خطأ في جلب المستخدمين:', err);
-    });
+  c.from('profiles').select('*').order('created_at', { ascending: false }).then(function(res) {
+    if (res.error) {
+      console.error('خطأ في جلب المستخدمين:', res.error);
+      return;
+    }
+    var users = res.data;
+    var tbody = document.getElementById('users-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (users) {
+      users.forEach(function(u) {
+        var tr = document.createElement('tr');
+        var actions = '';
+        if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
+        if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
+        actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
+        tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td><td>' + actions + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.dataset.id, act = btn.dataset.act;
+      if (act === 'activate') changeStatus(id, 'نشط');
+      else if (act === 'block') changeStatus(id, 'محظور');
+      else if (act === 'delete') deleteUser(id);
+    };
+  }).catch(function(err) {
+    console.error('خطأ في جلب المستخدمين:', err);
+  });
 }
 
 function changeStatus(id, st) {
@@ -771,7 +798,7 @@ function initOrderMap(lat, lng) {
   var mapEl = document.getElementById('order-map');
   if (!mapEl || typeof L === 'undefined') return;
   mapEl.innerHTML = '';
-  var map = L.map('order-map').setView([lat, lng], 13);
+  var map = L.map('order-map').setView([lat, lng], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
   var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
   marker.on('dragend', function() {
@@ -784,51 +811,56 @@ function initOrderMap(lat, lng) {
     document.getElementById('order-lat').value = e.latlng.lat;
     document.getElementById('order-lng').value = e.latlng.lng;
   });
+  setTimeout(function() { map.invalidateSize(); }, 300);
 }
 
-// ✅ تصحيح الصياغة هنا أيضاً
+// ==========================================
+// 12. تعديل الملف الشخصي
+// ==========================================
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
   if (!c || !app.currentUser) return;
   var name = app.currentUser.user_metadata ? app.currentUser.user_metadata.name || '' : '';
   var phone = app.currentUser.user_metadata ? app.currentUser.user_metadata.phone || '' : '';
+  
   c.innerHTML = 
-    '<div class="profile-card" style="background:#fff;border-radius:20px;padding:2rem;margin:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);">' +
-      '<h2 style="margin-bottom:1.5rem;">✏️ تعديل الملف الشخصي</h2>' +
-      '<div class="form-group" style="margin-bottom:1rem;">' +
-        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">الاسم:</label>' +
-        '<input type="text" id="edit-name" value="' + name + '" style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;">' +
+    '<div style="background:#fff;border-radius:24px;padding:1.5rem;margin:1rem;box-shadow:0 12px 32px rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.04);">' +
+      '<div style="text-align:center;margin-bottom:1.5rem;">' +
+        '<div style="width:70px;height:70px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:20px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.8rem;font-weight:bold;box-shadow:0 8px 20px rgba(102,126,234,0.35);">' + (name ? name.charAt(0) : '?') + '</div>' +
+        '<h2 style="margin:0;color:#1a202c;font-size:1.2rem;">✏️ تعديل الملف الشخصي</h2>' +
       '</div>' +
-      '<div class="form-group" style="margin-bottom:1rem;">' +
-        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">الهاتف:</label>' +
-        '<input type="tel" value="' + phone + '" disabled style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;">' +
+      '<div style="margin-bottom:1rem;">' +
+        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">الاسم</label>' +
+        '<input type="text" id="edit-name" value="' + name + '" style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;box-sizing:border-box;transition:border-color 0.3s;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
       '</div>' +
-      '<div class="form-group" style="margin-bottom:1.5rem;">' +
-        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">كلمة مرور جديدة (اختياري):</label>' +
-        '<input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء على الحالية" style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;">' +
+      '<div style="margin-bottom:1rem;">' +
+        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">الهاتف</label>' +
+        '<input type="tel" value="' + phone + '" disabled style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;background:#f7fafc;color:#a0aec0;box-sizing:border-box;">' +
       '</div>' +
-      '<div style="display:flex;gap:1rem;">' +
-        '<button id="save-profile" class="btn-primary" style="flex:1;background:#667eea;color:#fff;padding:1rem;border:none;border-radius:12px;cursor:pointer;">💾 حفظ التغييرات</button>' +
-        '<button id="cancel-edit" class="btn-secondary" style="flex:1;background:#edf2f7;color:#4a5568;padding:1rem;border:none;border-radius:12px;cursor:pointer;">إلغاء</button>' +
+      '<div style="margin-bottom:1.5rem;">' +
+        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">كلمة مرور جديدة (اختياري)</label>' +
+        '<input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء على الحالية" style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;box-sizing:border-box;transition:border-color 0.3s;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
       '</div>' +
-      '<p id="profile-msg" class="auth-msg hidden" style="margin-top:1rem;"></p>' +
+      '<div style="display:flex;gap:0.75rem;">' +
+        '<button id="save-profile" style="flex:1;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-size:0.95rem;font-weight:600;box-shadow:0 4px 15px rgba(102,126,234,0.35);">💾 حفظ</button>' +
+        '<button id="cancel-edit" style="flex:1;background:#edf2f7;color:#4a5568;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-size:0.95rem;font-weight:600;">إلغاء</button>' +
+      '</div>' +
+      '<p id="profile-msg" class="auth-msg hidden" style="margin-top:1rem;text-align:center;"></p>' +
     '</div>';
+  
   document.getElementById('save-profile').onclick = saveProfile;
-  document.getElementById('cancel-edit').onclick = function() { 
-    checkSession(); 
-  };
+  document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
-  var name = document.getElementById('edit-name')?.value.trim();
-  var password = document.getElementById('edit-password')?.value;
+  var name = document.getElementById('edit-name') ? document.getElementById('edit-name').value.trim() : '';
+  var password = document.getElementById('edit-password') ? document.getElementById('edit-password').value : '';
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  // ✅ تصحيح الصياغة هنا أيضاً
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
@@ -842,7 +874,7 @@ function saveProfile() {
 }
 
 // ==========================================
-// 12. التشغيل
+// 13. التشغيل
 // ==========================================
 function startApp() {
   if (app.ready) return;
