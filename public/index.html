@@ -83,16 +83,21 @@
                 <div class="form-group">
                     <input type="password" id="auth-password" placeholder="كلمة المرور" required>
                 </div>
+                
+                <!-- حقول الوثائق (تظهر فقط للسائقين والديلفري والباعة) -->
                 <div id="documents-section" class="hidden">
-                    <h3 style="margin:1rem 0;color:#0f172a;">الوثائق المطلوبة 📄</h3>
+                    <h3 style="margin: 1rem 0; color: #0f172a;">الوثائق المطلوبة 📄</h3>
+                    
                     <div class="form-group">
                         <label>صورة رخصة القيادة</label>
                         <input type="file" id="doc-license" accept="image/*">
                     </div>
+                    
                     <div class="form-group">
                         <label>صورة شخصية</label>
-                        <input type="file" id="doc-personal" accept="image/*" required>
+                        <input type="file" id="doc-personal" accept="image/*">
                     </div>
+
                     <div id="vehicle-section" class="hidden">
                         <div class="form-group">
                             <label>صورة السيارة</label>
@@ -108,6 +113,7 @@
                             <input type="text" id="vehicle-plate" placeholder="رقم اللوحة">
                         </div>
                     </div>
+
                     <div id="bike-section" class="hidden">
                         <div class="form-group">
                             <label>صورة الدراجة</label>
@@ -122,13 +128,14 @@
                         </div>
                     </div>
                 </div>
+
                 <button type="submit" id="auth-submit" class="btn-primary">تسجيل الدخول</button>
             </form>
             <p class="auth-msg hidden" id="auth-msg"></p>
         </div>
     </div>
 
-    <!-- 4. لوحة تحكم المستخدم - ✅ محدثة بواجهة الطلبات -->
+    <!-- 4. لوحة تحكم المستخدم -->
     <div id="user-dashboard" class="hidden">
         <header class="user-header">
             <div class="user-info">
@@ -140,80 +147,7 @@
         
         <main class="user-content">
             <div id="dash-content">
-                <!-- واجهة الطلبات الجديدة -->
-                <div class="order-section">
-                    <h2>🚀 اطلب خدمتك الآن</h2>
-                    
-                    <!-- اختيار نوع الخدمة -->
-                    <div class="service-selector">
-                        <label>نوع الخدمة:</label>
-                        <div class="service-options">
-                            <label class="service-option">
-                                <input type="radio" name="service-type" value="taxi" checked>
-                                <span class="option-icon">🚗</span>
-                                <span>تكسي</span>
-                            </label>
-                            <label class="service-option">
-                                <input type="radio" name="service-type" value="delivery">
-                                <span class="option-icon">🏍️</span>
-                                <span>ديلفري</span>
-                            </label>
-                            <label class="service-option">
-                                <input type="radio" name="service-type" value="shopping">
-                                <span class="option-icon">🛒</span>
-                                <span>تسوق</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- اختيار الموقع من الخريطة -->
-                    <div class="map-section">
-                        <label>📍 حدد موقعك على الخريطة:</label>
-                        <div id="order-map" class="order-map"></div>
-                        <div class="map-info">
-                            <span id="selected-location">اضغط على الخريطة لاختيار الموقع</span>
-                            <input type="hidden" id="order-lat">
-                            <input type="hidden" id="order-lng">
-                        </div>
-                        <button type="button" id="use-current-location" class="btn-secondary">
-                            🎯 استخدام موقعي الحالي
-                        </button>
-                    </div>
-
-                    <!-- تفاصيل الطلب -->
-                    <div class="order-details">
-                        <div class="form-group">
-                            <label>ملاحظات إضافية:</label>
-                            <textarea id="order-notes" rows="3" placeholder="أضف أي تفاصيل تساعد السائق..."></textarea>
-                        </div>
-                        <div class="form-group" id="pickup-group" style="display:none;">
-                            <label>📦 موقع الاستلام (لخدمة الدليفري/التسوق):</label>
-                            <input type="text" id="pickup-address" placeholder="اكتب عنوان الاستلام">
-                        </div>
-                    </div>
-
-                    <!-- ملخص الطلب -->
-                    <div class="order-summary">
-                        <h3>📋 ملخص الطلب</h3>
-                        <p><strong>الخدمة:</strong> <span id="summary-service">تكسي</span></p>
-                        <p><strong>الموقع:</strong> <span id="summary-location">لم يتم التحديد</span></p>
-                        <p><strong>الملاحظات:</strong> <span id="summary-notes">-</span></p>
-                    </div>
-
-                    <!-- زر إرسال الطلب -->
-                    <button id="submit-order" class="btn-primary btn-large">
-                        ✅ تأكيد وإرسال الطلب
-                    </button>
-                    <p id="order-msg" class="order-msg hidden"></p>
-                </div>
-
-                <!-- قسم تتبع الطلبات النشطة -->
-                <div class="tracking-section hidden" id="tracking-section">
-                    <h2>📊 تتبع طلباتك</h2>
-                    <div id="active-orders" class="orders-list">
-                        <!-- الطلبات ستظهر هنا ديناميكياً -->
-                    </div>
-                </div>
+                <!-- المحتوى الديناميكي -->
             </div>
         </main>
     </div>
