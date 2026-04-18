@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية - إصلاح التسجيل وكلمة المرور]
+// [النسخة المصححة - إصلاح خطأ قاعدة البيانات]
 // ==========================================
 
 var CONFIG = {
@@ -280,7 +280,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة ✅ تم الإصلاح (التحقق من كلمة المرور)
+// 8. المصادقة ✅ تم الإصلاح (تم إزالة الموقع من التسجيل مؤقتاً)
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -307,7 +307,6 @@ async function handleAuth(e) {
     return;
   }
 
-  // ✅ إصلاح: التحقق من طول كلمة المرور (6 أحرف على الأقل)
   if (pass.length < 6) {
     showMsg(msgEl, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
     return;
@@ -315,7 +314,6 @@ async function handleAuth(e) {
 
   try {
     if (app.authMode === 'register') {
-      // === تسجيل جديد ===
       if (!name) {
         showMsg(msgEl, 'الاسم مطلوب', 'error');
         return;
@@ -338,18 +336,17 @@ async function handleAuth(e) {
       var userId = signUpResult.data.user.id;
       console.log('✅ تم إنشاء الحساب في Auth:', userId);
       
-      // 2. الحصول على الموقع
+      // 2. الحصول على الموقع (للاستخدام المحلي فقط)
       var loc = await getCurrentLocation();
       
-      // 3. إنشاء الملف الشخصي في جدول profiles
+      // 3. إنشاء الملف الشخصي ✅ تم إزالة latitude و longitude مؤقتاً
       var profileData = {
         id: userId, 
         name: name, 
         phone: phone, 
         role: app.currentRole,
-        status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
-        latitude: loc.lat, 
-        longitude: loc.lng
+        status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة'
+        // ملاحظة: أضف عمودي latitude و longitude في Supabase لتفعيل الخريطة لاحقاً
       };
       
       var profileResult = await client.from('profiles').insert(profileData);
