@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية - جميع الإصلاحات]
+// [النسخة النهائية - تصميم متجاوب + 4 أزرار]
 // ==========================================
 
 var CONFIG = {
@@ -366,7 +366,7 @@ async function handleAuth(e) {
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: { data: { phone: phone, name: name, role: currentRole } }
+        options: {  { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) {
@@ -522,7 +522,7 @@ function uploadDocs(uid) {
 }
 
 // ==========================================
-// 9. لوحة المستخدم
+// 9. لوحة المستخدم ✅ تصميم جديد متجاوب
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
@@ -570,25 +570,87 @@ function showUserDashboard(p) {
     
     var c = document.getElementById('dash-content');
     if (c) {
-      var canEdit = p.role === 'زبون';
-      var serviceOptions = '<label class="service-option"><input type="radio" name="service-type" value="taxi" checked><span>🚗 تكسي</span></label>' +
-                           '<label class="service-option"><input type="radio" name="service-type" value="delivery"><span>🏍️ ديلفري</span></label>' +
-                           '<label class="service-option"><input type="radio" name="service-type" value="shopping"><span>🛒 تسوق</span></label>';
+      // ✅ التصميم الجديد المتجاوب - 4 أزرار
+      c.innerHTML = 
+        '<div class="profile-card" style="background:#fff;border-radius:20px;padding:2rem;margin:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);">' +
+          '<div style="text-align:center;">' +
+            '<div style="width:80px;height:80px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:50%;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;">' + p.name.charAt(0) + '</div>' +
+            '<h2 style="margin:0.5rem 0;color:#1a202c;">' + p.name + '</h2>' +
+            '<span class="role-badge" style="background:#667eea;color:#fff;padding:0.5rem 1.5rem;border-radius:20px;font-size:0.9rem;">' + p.role + '</span>' +
+            '<p style="margin:1rem 0;color:#718096;">📱 ' + p.phone + '</p>' +
+            '<button id="edit-profile-btn" class="btn-secondary" style="background:#edf2f7;color:#4a5568;padding:0.75rem 2rem;border-radius:12px;border:none;cursor:pointer;margin-top:0.5rem;">✏️ تعديل الملف</button>' +
+          '</div>' +
+        '</div>' +
+        
+        '<div class="services-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;padding:1rem;">' +
+          '<button onclick="requestService(\'taxi\')" class="service-btn" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(102,126,234,0.3);transition:transform 0.2s;">' +
+            '<div style="font-size:3rem;margin-bottom:0.5rem;">🚗</div>' +
+            '<div style="font-size:1.1rem;font-weight:bold;">طلب تكسي</div>' +
+          '</button>' +
+          '<button onclick="requestService(\'delivery\')" class="service-btn" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(245,87,108,0.3);transition:transform 0.2s;">' +
+            '<div style="font-size:3rem;margin-bottom:0.5rem;">🏍️</div>' +
+            '<div style="font-size:1.1rem;font-weight:bold;">طلب ديلفري</div>' +
+          '</button>' +
+          '<button onclick="requestService(\'shopping\')" class="service-btn" style="background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(79,172,254,0.3);transition:transform 0.2s;">' +
+            '<div style="font-size:3rem;margin-bottom:0.5rem;">🛒</div>' +
+            '<div style="font-size:1.1rem;font-weight:bold;">تسوق</div>' +
+          '</button>' +
+          '<button onclick="shareWithShira()" class="service-btn" style="background:linear-gradient(135deg,#43e97b 0%,#38f9d7 100%);color:#fff;border:none;padding:2rem 1rem;border-radius:20px;cursor:pointer;box-shadow:0 4px 6px rgba(67,233,123,0.3);transition:transform 0.2s;">' +
+            '<div style="font-size:3rem;margin-bottom:0.5rem;">⛵</div>' +
+            '<div style="font-size:1.1rem;font-weight:bold;">مشاركة مع شراع</div>' +
+          '</button>' +
+        '</div>' +
+        
+        '<div class="map-section" style="padding:1rem;">' +
+          '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;font-weight:bold;">📍 موقعك الحالي:</label>' +
+          '<div id="order-map" style="height:250px;background:#f7fafc;border-radius:16px;"></div>' +
+          '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
+          '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
+        '</div>';
       
-      c.innerHTML = '<div class="welcome-card"><h2>مرحباً ' + p.name + ' 👋</h2><p>لوحة تحكم ' + p.role + ' جاهزة</p>' +
-        (canEdit ? '<button id="edit-profile-btn" class="btn-secondary" style="margin-top:1rem;">✏️ تعديل ملفي</button>' : '') +
-        '<p style="margin-top:0.5rem;font-size:0.9rem;color:#64748b;">📍 ' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + '</p></div>' +
-        '<div class="order-section" style="margin-top:2rem;"><h3>🚀 اطلب خدمتك</h3><div class="service-selector"><label>نوع الخدمة:</label><div class="service-options">' + serviceOptions + '</div></div>' +
-        '<div class="map-section" style="margin:1rem 0;"><label>📍 الموقع:</label><div id="order-map" style="height:200px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;">جاري التحميل...</div>' +
-        '<input type="hidden" id="order-lat" value="' + loc.lat + '"><input type="hidden" id="order-lng" value="' + loc.lng + '">' +
-        '<button type="button" id="use-current-location" class="btn-secondary" style="margin-top:0.5rem;">🎯 موقعي الحالي</button></div>' +
-        '<div class="form-group"><label>ملاحظات:</label><textarea id="order-notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>' +
-        '<button id="submit-order" class="btn-primary" style="width:100%;margin-top:1rem;">✅ إرسال الطلب</button><p id="order-msg" class="order-msg hidden"></p></div>' +
-        '<div class="tracking-section" style="margin-top:2rem;"><h3>📊 طلباتي</h3><div id="active-orders"></div></div>';
+      if (typeof L !== 'undefined') {
+        setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 100);
+      }
       
-      if (typeof L !== 'undefined') initOrderMap(loc.lat, loc.lng);
-      bindOrderEvents();
-      loadActiveOrders();
+      // ربط الأحداث
+      document.getElementById('edit-profile-btn').onclick = function() { showProfileEditor(); };
+      
+      // دوال الأزرار الأربعة
+      window.requestService = function(type) {
+        var serviceName = type === 'taxi' ? 'تكسي' : type === 'delivery' ? 'ديلفري' : 'تسوق';
+        if (confirm('هل تريد طلب خدمة ' + serviceName + '؟')) {
+          createOrder(type);
+        }
+      };
+      
+      window.shareWithShira = function() {
+        alert('شكراً لمشاركتك مع شراع! 🚀\nسيتم التواصل معك قريباً');
+      };
+      
+      window.createOrder = function(serviceType) {
+        var client = window.supabaseClient;
+        if (!client || !app.currentUser) return;
+        
+        var orderData = {
+          user_id: app.currentUser.id,
+          service_type: serviceType,
+          latitude: parseFloat(document.getElementById('order-lat').value),
+          longitude: parseFloat(document.getElementById('order-lng').value),
+          status: 'pending',
+          created_at: new Date().toISOString()
+        };
+        
+        client.from('orders').insert(orderData).then(function(res) {
+          if (res.error) {
+            alert('حدث خطأ في إرسال الطلب: ' + res.error.message);
+          } else {
+            alert('✅ تم إرسال طلبك بنجاح!\nسيتم التواصل معك قريباً');
+          }
+        }).catch(function(err) {
+          console.error('Error:', err);
+          alert('حدث خطأ في إرسال الطلب');
+        });
+      };
     }
   });
 }
@@ -706,7 +768,7 @@ function handleLogout() {
 }
 
 // ==========================================
-// 11. دوال الطلبات والخريطة
+// 11. دوال الخريطة
 // ==========================================
 function initOrderMap(lat, lng) {
   var mapEl = document.getElementById('order-map');
@@ -727,59 +789,36 @@ function initOrderMap(lat, lng) {
   });
 }
 
-function bindOrderEvents() {
-  var locBtn = document.getElementById('use-current-location');
-  if (locBtn) locBtn.onclick = function() {
-    getCurrentLocation().then(function(loc) {
-      document.getElementById('order-lat').value = loc.lat;
-      document.getElementById('order-lng').value = loc.lng;
-      if (typeof L !== 'undefined') {
-        var mapEl = document.getElementById('order-map');
-        if (mapEl) { mapEl.innerHTML = ''; initOrderMap(loc.lat, loc.lng); }
-      }
-      alert('✅ تم تحديث الموقع');
-    });
-  };
-  
-  var submitBtn = document.getElementById('submit-order');
-  if (submitBtn) submitBtn.onclick = function() {
-    var client = window.supabaseClient;
-    if (!client || !app.currentUser) return;
-    var serviceType = document.querySelector('input[name="service-type"]:checked')?.value;
-    var lat = document.getElementById('order-lat')?.value;
-    var lng = document.getElementById('order-lng')?.value;
-    var notes = document.getElementById('order-notes')?.value || '';
-    var msgEl = document.getElementById('order-msg');
-    if (!serviceType || !lat || !lng) { showMsg(msgEl, 'يرجى تحديد الخدمة والموقع', 'error'); return; }
-    client.from('orders').insert({
-      user_id: app.currentUser.id, service_type: serviceType,
-      latitude: parseFloat(lat), longitude: parseFloat(lng),
-      notes: notes, status: 'pending', created_at: new Date().toISOString()
-    }).then(function(res) {
-      if (res.error) showMsg(msgEl, 'خطأ: ' + res.error.message, 'error');
-      else { showMsg(msgEl, '✅ تم إرسال الطلب', 'success'); setTimeout(function() { loadActiveOrders(); }, 1000); }
-    }).catch(function(err) {
-      console.error('خطأ في إرسال الطلب:', err);
-      showMsg(msgEl, 'حدث خطأ في إرسال الطلب', 'error');
-    });
-  };
-  
-  var editBtn = document.getElementById('edit-profile-btn');
-  if (editBtn) editBtn.onclick = function() { showProfileEditor(); };
-}
-
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
   if (!c || !app.currentUser) return;
   var name = app.currentUser.user_metadata ? app.currentUser.user_metadata.name || '' : '';
   var phone = app.currentUser.user_metadata ? app.currentUser.user_metadata.phone || '' : '';
-  c.innerHTML = '<div class="welcome-card"><h2>✏️ تعديل ملفي</h2>' +
-    '<div class="form-group"><label>الاسم:</label><input type="text" id="edit-name" value="' + name + '"></div>' +
-    '<div class="form-group"><label>الهاتف:</label><input type="tel" value="' + phone + '" disabled style="background:#f1f5f9;"></div>' +
-    '<div class="form-group"><label>كلمة مرور جديدة (اختياري):</label><input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء"></div>' +
-    '<button id="save-profile" class="btn-primary">💾 حفظ</button><button id="cancel-edit" class="btn-back" style="margin-right:1rem;">إلغاء</button><p id="profile-msg" class="auth-msg hidden"></p></div>';
+  c.innerHTML = 
+    '<div class="profile-card" style="background:#fff;border-radius:20px;padding:2rem;margin:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);">' +
+      '<h2 style="margin-bottom:1.5rem;">✏️ تعديل الملف الشخصي</h2>' +
+      '<div class="form-group" style="margin-bottom:1rem;">' +
+        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">الاسم:</label>' +
+        '<input type="text" id="edit-name" value="' + name + '" style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;">' +
+      '</div>' +
+      '<div class="form-group" style="margin-bottom:1rem;">' +
+        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">الهاتف:</label>' +
+        '<input type="tel" value="' + phone + '" disabled style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;">' +
+      '</div>' +
+      '<div class="form-group" style="margin-bottom:1.5rem;">' +
+        '<label style="display:block;margin-bottom:0.5rem;color:#4a5568;">كلمة مرور جديدة (اختياري):</label>' +
+        '<input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء على الحالية" style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:12px;">' +
+      '</div>' +
+      '<div style="display:flex;gap:1rem;">' +
+        '<button id="save-profile" class="btn-primary" style="flex:1;background:#667eea;color:#fff;padding:1rem;border:none;border-radius:12px;cursor:pointer;">💾 حفظ التغييرات</button>' +
+        '<button id="cancel-edit" class="btn-secondary" style="flex:1;background:#edf2f7;color:#4a5568;padding:1rem;border:none;border-radius:12px;cursor:pointer;">إلغاء</button>' +
+      '</div>' +
+      '<p id="profile-msg" class="auth-msg hidden" style="margin-top:1rem;"></p>' +
+    '</div>';
   document.getElementById('save-profile').onclick = saveProfile;
-  document.getElementById('cancel-edit').onclick = function() { checkSession(); };
+  document.getElementById('cancel-edit').onclick = function() { 
+    checkSession(); 
+  };
 }
 
 function saveProfile() {
@@ -789,7 +828,7 @@ function saveProfile() {
   var password = document.getElementById('edit-password')?.value;
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
@@ -797,48 +836,9 @@ function saveProfile() {
     return client.from('profiles').update({ name: name }).eq('id', app.currentUser.id);
   }).then(function(profRes) {
     if (profRes.error) throw profRes.error;
-    showMsg(msgEl, '✅ تم الحفظ', 'success');
+    showMsg(msgEl, '✅ تم الحفظ بنجاح', 'success');
     setTimeout(function() { checkSession(); }, 1500);
   }).catch(function(err) { console.error(err); showMsg(msgEl, err.message || 'خطأ', 'error'); });
-}
-
-function loadActiveOrders() {
-  var client = window.supabaseClient;
-  if (!client || !app.currentUser) return;
-  
-  client.from('orders')
-    .select('*')
-    .eq('user_id', app.currentUser.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-    .then(function(res) {
-      if (res.error) {
-        console.error('خطأ في جلب الطلبات:', res.error);
-        return;
-      }
-      
-      var orders = res.data;
-      var listEl = document.getElementById('active-orders');
-      if (!listEl) return;
-      
-      if (!orders || orders.length === 0) { 
-        listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; 
-        return; 
-      }
-      
-      var html = '';
-      orders.forEach(function(o) {
-        var sName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
-        html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;"><div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + sName + '</strong><span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
-          '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
-        if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
-        html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
-      });
-      listEl.innerHTML = html;
-    })
-    .catch(function(err) {
-      console.error('خطأ في جلب الطلبات:', err);
-    });
 }
 
 // ==========================================
