@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [نسخة محدثة: حفظ الصفحة + الموقع التلقائي + صلاحيات الملف]
+// [النسخة المصححة الكاملة]
 // ==========================================
 
 const CONFIG = {
@@ -48,7 +48,7 @@ function restoreLocation() {
 }
 
 function saveLocation(lat, lng) {
-  app.userLocation = { lat, lng, timestamp: Date.now() };
+  app.userLocation = { lat: lat, lng: lng, timestamp: Date.now() };
   localStorage.setItem('shira_user_location', JSON.stringify(app.userLocation));
 }
 
@@ -82,12 +82,14 @@ function bootstrap() {
   else setTimeout(bootstrap, 200);
 }
 
-document.readyState === 'loading' 
-  ? document.addEventListener('DOMContentLoaded', bootstrap) 
-  : bootstrap();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
 
 // ==========================================
-// 4. إدارة الشاشات ✅ تحسّن: البقاء في نفس الصفحة
+// 4. إدارة الشاشات
 // ==========================================
 function showScreen(id) {
   document.querySelectorAll('body > div').forEach(el => {
@@ -96,7 +98,6 @@ function showScreen(id) {
   const target = document.getElementById(id);
   if (target) {
     target.classList.remove('hidden');
-    // ✅ حفظ الشاشة الحالية لمنع العودة للرئيسية
     if (id !== 'main-app') localStorage.setItem('shira_screen', id);
   }
 }
@@ -111,7 +112,7 @@ function restoreScreen() {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === savedTab));
       document.querySelectorAll('.admin-tab').forEach(t => {
         t.classList.add('hidden');
-        if (t.id === `tab-${savedTab}`) t.classList.remove('hidden');
+        if (t.id === 'tab-' + savedTab) t.classList.remove('hidden');
       });
     }
   } else {
@@ -120,16 +121,15 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة ✅ تحسّن: تحميل الموقع + البقاء في الصفحة
+// 5. التحقق من الجلسة
 // ==========================================
 async function checkSession() {
   const client = window.supabaseClient;
   if (!client) return;
   try {
     const res = await client.auth.getSession();
-    const session = res.data?.session;
+    const session = res.data ? res.data.session : null;
     
-    // ✅ استعادة الموقع المحفوظ
     restoreLocation();
     
     if (session) {
@@ -142,7 +142,6 @@ async function checkSession() {
       else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
       else { 
         await showUserDashboard(profile);
-        // ✅ البقاء في الشاشة المحفوظة أو الانتقال للوحة التحكم
         const saved = localStorage.getItem('shira_screen');
         showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
       }
@@ -161,14 +160,15 @@ function setupRealtime() {
   
   client.channel('profiles_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (p) => {
-      if (!document.getElementById('admin-panel')?.classList.contains('hidden')) {
-        if (['INSERT', 'UPDATE'].includes(p.eventType)) {
+      if (!document.getElementById('admin-panel') || !document.getElementById('admin-panel').classList.contains('hidden')) {
+        if (p.eventType === 'INSERT' || p.eventType === 'UPDATE') {
           loadStats();
-          if (!document.getElementById('tab-users')?.classList.contains('hidden')) loadUsersTable();
+          const tabUsers = document.getElementById('tab-users');
+          if (tabUsers && !tabUsers.classList.contains('hidden')) loadUsersTable();
         }
       }
-      if (app.currentUser && p.new?.id === app.currentUser.id) {
-        if (p.new?.status === 'محظور') showScreen('blocked-screen');
+      if (app.currentUser && p.new && p.new.id === app.currentUser.id) {
+        if (p.new.status === 'محظور') showScreen('blocked-screen');
       }
     }).subscribe();
 }
@@ -186,104 +186,136 @@ function setupEvents() {
     };
   });
 
-  const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
-  bind('back-to-main', () => showScreen('main-app'));
-  bind('back-to-home', () => showScreen('main-app'));
-  bind('logout-admin', () => showScreen('main-app'));
+  var bind = function(id, fn) { 
+    var el = document.getElementById(id); 
+    if (el) el.onclick = fn; 
+  };
+  
+  bind('back-to-main', function() { showScreen('main-app'); });
+  bind('back-to-home', function() { showScreen('main-app'); });
+  bind('logout-admin', function() { showScreen('main-app'); });
   bind('logout-user', handleLogout);
   bind('login-submit', handleAdminLogin);
-  bind('btn-about', () => document.getElementById('about-modal')?.classList.remove('hidden'));
-  bind('btn-contact', () => document.getElementById('contact-modal')?.classList.remove('hidden'));
-
-  document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
-    document.getElementById('about-modal')?.classList.add('hidden');
-    document.getElementById('contact-modal')?.classList.add('hidden');
+  bind('btn-about', function() { 
+    var m = document.getElementById('about-modal');
+    if (m) m.classList.remove('hidden'); 
   });
-  ['about-modal', 'contact-modal'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.onclick = (e) => { if (e.target === el) el.classList.add('hidden'); };
+  bind('btn-contact', function() { 
+    var m = document.getElementById('contact-modal');
+    if (m) m.classList.remove('hidden'); 
   });
 
-  bind('logo-container', () => showScreen('admin-login'));
+  document.querySelectorAll('.close-modal').forEach(function(b) { 
+    b.onclick = function() {
+      var about = document.getElementById('about-modal');
+      var contact = document.getElementById('contact-modal');
+      if (about) about.classList.add('hidden');
+      if (contact) contact.classList.add('hidden');
+    };
+  });
+  
+  ['about-modal', 'contact-modal'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.onclick = function(e) { if (e.target === el) el.classList.add('hidden'); };
+  });
 
-  document.querySelectorAll('.auth-tab').forEach(tab => {
-    tab.onclick = () => {
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  bind('logo-container', function() { 
+    showScreen('admin-login');
+    localStorage.setItem('shira_screen', 'admin-login');
+  });
+
+  document.querySelectorAll('.auth-tab').forEach(function(tab) {
+    tab.onclick = function() {
+      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
       tab.classList.add('active');
       app.authMode = tab.dataset.mode;
       updateAuthForm();
     };
   });
 
-  const form = document.getElementById('auth-form');
+  var form = document.getElementById('auth-form');
   if (form) form.onsubmit = handleAuth;
 
-  document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      document.querySelectorAll('.admin-nav-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
-      const tab = document.getElementById(`tab-${btn.dataset.tab}`);
-      if (tab) tab.classList.remove('hidden');
+      document.querySelectorAll('.admin-tab').forEach(function(t) { 
+        t.classList.add('hidden');
+        t.classList.remove('active'); 
+      });
+      var tab = document.getElementById('tab-' + btn.dataset.tab);
+      if (tab) {
+        tab.classList.remove('hidden');
+        tab.classList.add('active');
+      }
       localStorage.setItem('shira_admin_tab', btn.dataset.tab);
       if (btn.dataset.tab === 'users') loadUsersTable();
       if (btn.dataset.tab === 'dashboard') loadStats();
     };
   });
 
-  const maintToggle = document.getElementById('maintenance-toggle');
+  var maintToggle = document.getElementById('maintenance-toggle');
   if (maintToggle) {
-    maintToggle.onchange = async (e) => {
-      const client = window.supabaseClient;
+    maintToggle.onchange = function(e) {
+      var client = window.supabaseClient;
       if (!client) return;
-      const val = e.target.checked;
-      const res = await client.from('settings').select('*').eq('key', 'maintenance').single();
-      if (res.data) await client.from('settings').update({ value: val }).eq('key', 'maintenance');
-      else await client.from('settings').insert({ key: 'maintenance', value: val });
-      alert(val ? 'تم تفعيل الصيانة' : 'تم إيقاف الصيانة');
+      var val = e.target.checked;
+      client.from('settings').select('*').eq('key', 'maintenance').single().then(function(res) {
+        if (res.data) {
+          client.from('settings').update({ value: val }).eq('key', 'maintenance');
+        } else {
+          client.from('settings').insert({ key: 'maintenance', value: val });
+        }
+        alert(val ? 'تم تفعيل الصيانة' : 'تم إيقاف الصيانة');
+      });
     };
   }
 }
 
 // ==========================================
-// 8. المصادقة ✅ تحسّن: إنشاء الحساب + التوجيه + حفظ الموقع
+// 8. المصادقة
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
-  const client = window.supabaseClient;
-  const phone = document.getElementById('auth-phone')?.value.trim();
-  const pass = document.getElementById('auth-password')?.value;
-  const name = document.getElementById('auth-name')?.value.trim();
-  const msgEl = document.getElementById('auth-msg');
+  var client = window.supabaseClient;
+  var phone = document.getElementById('auth-phone') ? document.getElementById('auth-phone').value.trim() : '';
+  var pass = document.getElementById('auth-password') ? document.getElementById('auth-password').value : '';
+  var name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : '';
+  var msgEl = document.getElementById('auth-msg');
   if (msgEl) msgEl.classList.add('hidden');
 
   try {
     if (app.authMode === 'register') {
       if (!name) throw new Error('الاسم مطلوب');
       
-      const res = await client.auth.signUp({
-        email: `${phone}@shira.app`, password: pass,
-        options: {  { phone, name, role: app.currentRole } }
+      var signUpRes = await client.auth.signUp({
+        email: phone + '@shira.app', 
+        password: pass,
+        options: { data: { phone: phone, name: name, role: app.currentRole } }
       });
-      if (res.error) throw res.error;
+      
+      if (signUpRes.error) throw signUpRes.error;
 
-      // ✅ تحديد الموقع أولاً
-      const loc = await getCurrentLocation();
+      var loc = await getCurrentLocation();
       
       await client.from('profiles').insert({
-        id: res.data.user.id, name, phone, role: app.currentRole,
+        id: signUpRes.data.user.id, 
+        name: name, 
+        phone: phone, 
+        role: app.currentRole,
         status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
-        latitude: loc.lat, longitude: loc.lng
+        latitude: loc.lat, 
+        longitude: loc.lng
       });
 
-      if (app.currentRole !== 'زبون') await uploadDocs(res.data.user.id);
+      if (app.currentRole !== 'زبون') await uploadDocs(signUpRes.data.user.id);
 
       showMsg(msgEl, 'تم الإنشاء! ' + (app.currentRole === 'زبون' ? 'جاري التوجيه...' : 'بانتظار الموافقة'), 'success');
       
-      // ✅ التوجيه الفوري مع حفظ الشاشة
-      setTimeout(async () => {
+      setTimeout(function() {
         if (app.currentRole === 'زبون') {
-          await showUserDashboard({ name, phone, role: app.currentRole, latitude: loc.lat, longitude: loc.lng });
+          showUserDashboard({ name: name, phone: phone, role: app.currentRole, latitude: loc.lat, longitude: loc.lng });
           showScreen('user-dashboard');
           localStorage.setItem('shira_screen', 'user-dashboard');
         } else {
@@ -291,20 +323,24 @@ async function handleAuth(e) {
         }
       }, 1500);
     } else {
-      const res = await client.auth.signInWithPassword({ email: `${phone}@shira.app`, password: pass });
-      if (res.error) throw res.error;
+      var signInRes = await client.auth.signInWithPassword({ 
+        email: phone + '@shira.app', 
+        password: pass 
+      });
+      
+      if (signInRes.error) throw signInRes.error;
 
-      app.currentUser = res.data.user;
-      const pRes = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
-      const profile = pRes.data;
+      app.currentUser = signInRes.data.user;
+      var pRes = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
+      var profile = pRes.data;
+      
       if (!profile) throw new Error('ملف غير موجود');
 
       if (profile.status === 'محظور') showScreen('blocked-screen');
       else if (profile.status === 'قيد المراجعة') showScreen('pending-screen');
       else { 
         await showUserDashboard(profile);
-        // ✅ البقاء في الشاشة المحفوظة
-        const saved = localStorage.getItem('shira_screen');
+        var saved = localStorage.getItem('shira_screen');
         showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
       }
     }
@@ -315,98 +351,130 @@ async function handleAuth(e) {
 }
 
 async function uploadDocs(uid) {
-  const client = window.supabaseClient;
+  var client = window.supabaseClient;
   if (!client) return;
-  const files = {
+  
+  var files = {
     license: document.getElementById('doc-license'),
     personal: document.getElementById('doc-personal'),
     vehicle: document.getElementById('doc-vehicle'),
     bike: document.getElementById('doc-bike')
   };
-  const data = {};
-  for (const [k, inp] of Object.entries(files)) {
-    if (inp?.files?.[0]) {
-      const f = inp.files[0];
-      const path = `${uid}/${k}_${Date.now()}.${f.name.split('.').pop()}`;
-      const up = await client.storage.from('shira-docs').upload(path, f);
-      if (!up.error) {
-        const urlRes = client.storage.from('shira-docs').getPublicUrl(path);
-        data[`${k}_image`] = urlRes.data.publicUrl;
+  
+  var data = {};
+  
+  for (var k in files) {
+    if (files.hasOwnProperty(k)) {
+      var inp = files[k];
+      if (inp && inp.files && inp.files[0]) {
+        var f = inp.files[0];
+        var path = uid + '/' + k + '_' + Date.now() + '.' + f.name.split('.').pop();
+        var up = await client.storage.from('shira-docs').upload(path, f);
+        if (!up.error) {
+          var urlRes = client.storage.from('shira-docs').getPublicUrl(path);
+          data[k + '_image'] = urlRes.data.publicUrl;
+        }
       }
     }
   }
-  if (document.getElementById('vehicle-type')?.value) data.vehicle_type = document.getElementById('vehicle-type').value;
-  if (document.getElementById('bike-registered')?.value) data.bike_registered = document.getElementById('bike-registered').value === 'true';
-  if (Object.keys(data).length) await client.from('documents').insert({ user_id: uid, ...data });
+  
+  var vehicleTypeEl = document.getElementById('vehicle-type');
+  var vehicleColorEl = document.getElementById('vehicle-color');
+  var vehiclePlateEl = document.getElementById('vehicle-plate');
+  var bikeRegisteredEl = document.getElementById('bike-registered');
+  
+  if (vehicleTypeEl && vehicleTypeEl.value) data.vehicle_type = vehicleTypeEl.value;
+  if (vehicleColorEl && vehicleColorEl.value) data.vehicle_color = vehicleColorEl.value;
+  if (vehiclePlateEl && vehiclePlateEl.value) data.vehicle_plate = vehiclePlateEl.value;
+  if (bikeRegisteredEl && bikeRegisteredEl.value !== undefined) data.bike_registered = bikeRegisteredEl.value === 'true';
+  
+  if (Object.keys(data).length) await client.from('documents').insert({ user_id: uid });
 }
 
 // ==========================================
-// 9. لوحة المستخدم ✅ تحسّن: واجهة الطلبات + صلاحيات التعديل
+// 9. لوحة المستخدم
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
-  document.getElementById('auth-role-title').textContent = `تسجيل ${role}`;
+  var titleEl = document.getElementById('auth-role-title');
+  if (titleEl) titleEl.textContent = 'تسجيل ' + role;
+  
   updateAuthForm();
-  const sec = document.getElementById('documents-section');
-  const veh = document.getElementById('vehicle-section');
-  const bik = document.getElementById('bike-section');
-  if (role === 'زبون') sec?.classList.add('hidden');
-  else {
-    sec?.classList.remove('hidden');
-    if (role === 'سائق تكسي') { veh?.classList.remove('hidden'); bik?.classList.add('hidden'); }
-    else if (role === 'ديلفري') { veh?.classList.add('hidden'); bik?.classList.remove('hidden'); }
-    else { veh?.classList.add('hidden'); bik?.classList.add('hidden'); }
+  
+  var sec = document.getElementById('documents-section');
+  var veh = document.getElementById('vehicle-section');
+  var bik = document.getElementById('bike-section');
+  
+  if (role === 'زبون') {
+    if (sec) sec.classList.add('hidden');
+  } else {
+    if (sec) sec.classList.remove('hidden');
+    if (role === 'سائق تكسي') { 
+      if (veh) veh.classList.remove('hidden'); 
+      if (bik) bik.classList.add('hidden'); 
+    } else if (role === 'ديلفري') { 
+      if (veh) veh.classList.add('hidden'); 
+      if (bik) bik.classList.remove('hidden'); 
+    } else { 
+      if (veh) veh.classList.add('hidden'); 
+      if (bik) bik.classList.add('hidden'); 
+    }
   }
 }
 
 function updateAuthForm() {
-  const ng = document.getElementById('name-group');
-  const sb = document.getElementById('auth-submit');
-  if (app.authMode === 'register') { ng?.classList.remove('hidden'); if(sb) sb.textContent = 'إنشاء حساب'; }
-  else { ng?.classList.add('hidden'); if(sb) sb.textContent = 'تسجيل الدخول'; }
+  var ng = document.getElementById('name-group');
+  var sb = document.getElementById('auth-submit');
+  if (app.authMode === 'register') { 
+    if (ng) ng.classList.remove('hidden'); 
+    if (sb) sb.textContent = 'إنشاء حساب'; 
+  } else { 
+    if (ng) ng.classList.add('hidden'); 
+    if (sb) sb.textContent = 'تسجيل الدخول'; 
+  }
 }
 
 async function showUserDashboard(p) {
-  const n = document.getElementById('dash-user-name');
-  const r = document.getElementById('dash-user-role');
+  var n = document.getElementById('dash-user-name');
+  var r = document.getElementById('dash-user-role');
   if (n) n.textContent = p.name;
   if (r) r.textContent = p.role;
   
-  const c = document.getElementById('dash-content');
+  var c = document.getElementById('dash-content');
   if (c) {
-    const canEdit = p.role === 'زبون';
-    const loc = await getCurrentLocation();
+    var canEdit = p.role === 'زبون';
+    var loc = await getCurrentLocation();
     
-    c.innerHTML = `
-      <div class="welcome-card">
-        <h2>مرحباً ${p.name} 👋</h2>
-        <p>لوحة تحكم ${p.role} جاهزة</p>
-        ${canEdit ? `<button id="edit-profile-btn" class="btn-secondary" style="margin-top:1rem;">✏️ تعديل ملفي</button>` : ''}
-        <p style="margin-top:0.5rem;font-size:0.9rem;color:#64748b;">📍 ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}</p>
-      </div>
-      <div class="order-section" style="margin-top:2rem;">
-        <h3>🚀 اطلب خدمتك</h3>
-        <div class="service-selector">
-          <label>نوع الخدمة:</label>
-          <div class="service-options">
-            <label class="service-option"><input type="radio" name="service-type" value="taxi" checked><span>🚗 تكسي</span></label>
-            <label class="service-option"><input type="radio" name="service-type" value="delivery"><span>🏍️ ديلفري</span></label>
-            <label class="service-option"><input type="radio" name="service-type" value="shopping"><span>🛒 تسوق</span></label>
-          </div>
-        </div>
-        <div class="map-section" style="margin:1rem 0;">
-          <label>📍 الموقع:</label>
-          <div id="order-map" style="height:200px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;">جاري التحميل...</div>
-          <input type="hidden" id="order-lat" value="${loc.lat}">
-          <input type="hidden" id="order-lng" value="${loc.lng}">
-          <button type="button" id="use-current-location" class="btn-secondary" style="margin-top:0.5rem;">🎯 موقعي الحالي</button>
-        </div>
-        <div class="form-group"><label>ملاحظات:</label><textarea id="order-notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>
-        <button id="submit-order" class="btn-primary" style="width:100%;margin-top:1rem;">✅ إرسال الطلب</button>
-        <p id="order-msg" class="order-msg hidden"></p>
-      </div>
-      <div class="tracking-section" style="margin-top:2rem;"><h3>📊 طلباتي</h3><div id="active-orders"></div></div>
-    `;
+    var serviceOptions = '';
+    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="taxi" checked><span>🚗 تكسي</span></label>';
+    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="delivery"><span>🏍️ ديلفري</span></label>';
+    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="shopping"><span>🛒 تسوق</span></label>';
+    
+    c.innerHTML = 
+      '<div class="welcome-card">' +
+        '<h2>مرحباً ' + p.name + ' 👋</h2>' +
+        '<p>لوحة تحكم ' + p.role + ' جاهزة</p>' +
+        (canEdit ? '<button id="edit-profile-btn" class="btn-secondary" style="margin-top:1rem;">✏️ تعديل ملفي</button>' : '') +
+        '<p style="margin-top:0.5rem;font-size:0.9rem;color:#64748b;">📍 ' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + '</p>' +
+      '</div>' +
+      '<div class="order-section" style="margin-top:2rem;">' +
+        '<h3>🚀 اطلب خدمتك</h3>' +
+        '<div class="service-selector">' +
+          '<label>نوع الخدمة:</label>' +
+          '<div class="service-options">' + serviceOptions + '</div>' +
+        '</div>' +
+        '<div class="map-section" style="margin:1rem 0;">' +
+          '<label>📍 الموقع:</label>' +
+          '<div id="order-map" style="height:200px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;">جاري التحميل...</div>' +
+          '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
+          '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
+          '<button type="button" id="use-current-location" class="btn-secondary" style="margin-top:0.5rem;">🎯 موقعي الحالي</button>' +
+        '</div>' +
+        '<div class="form-group"><label>ملاحظات:</label><textarea id="order-notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>' +
+        '<button id="submit-order" class="btn-primary" style="width:100%;margin-top:1rem;">✅ إرسال الطلب</button>' +
+        '<p id="order-msg" class="order-msg hidden"></p>' +
+      '</div>' +
+      '<div class="tracking-section" style="margin-top:2rem;"><h3>📊 طلباتي</h3><div id="active-orders"></div></div>';
     
     if (typeof L !== 'undefined') initOrderMap(loc.lat, loc.lng);
     bindOrderEvents();
@@ -417,7 +485,7 @@ async function showUserDashboard(p) {
 function showMsg(el, txt, type) {
   if (!el) return;
   el.textContent = txt;
-  el.className = `auth-msg ${type === 'error' ? 'error' : 'success'}`;
+  el.className = 'auth-msg ' + (type === 'error' ? 'error' : 'success');
   el.classList.remove('hidden');
 }
 
@@ -425,40 +493,63 @@ function showMsg(el, txt, type) {
 // 10. لوحة الإدارة
 // ==========================================
 async function handleAdminLogin() {
-  const u = document.getElementById('admin-user')?.value;
-  const p = document.getElementById('admin-pass')?.value;
-  const err = document.getElementById('login-error');
+  var u = document.getElementById('admin-user') ? document.getElementById('admin-user').value : '';
+  var p = document.getElementById('admin-pass') ? document.getElementById('admin-pass').value : '';
+  var err = document.getElementById('login-error');
+  
   if (u === 'admin' && p === '1234') {
     if (err) err.classList.add('hidden');
     showScreen('admin-panel');
     loadStats();
-  } else { if (err) err.classList.remove('hidden'); }
+  } else { 
+    if (err) err.classList.remove('hidden'); 
+  }
 }
 
 async function loadStats() {
-  const c = window.supabaseClient; if (!c) return;
-  const u = await c.from('profiles').select('*', { count: 'exact', head: true });
-  const p = await c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة');
-  const su = document.getElementById('stat-users');
-  const sp = document.getElementById('stat-pending');
+  var c = window.supabaseClient; 
+  if (!c) return;
+  
+  var u = await c.from('profiles').select('*', { count: 'exact', head: true });
+  var p = await c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة');
+  
+  var su = document.getElementById('stat-users');
+  var sp = document.getElementById('stat-pending');
   if (su) su.textContent = u.count || 0;
   if (sp) sp.textContent = p.count || 0;
 }
 
 async function loadUsersTable() {
-  const c = window.supabaseClient; if (!c) return;
-  const res = await c.from('profiles').select('*').order('created_at', { ascending: false });
-  const users = res.data;
-  const tbody = document.getElementById('users-list');
+  var c = window.supabaseClient; 
+  if (!c) return;
+  
+  var res = await c.from('profiles').select('*').order('created_at', { ascending: false });
+  var users = res.data;
+  var tbody = document.getElementById('users-list');
+  
   if (!tbody) return;
   tbody.innerHTML = '';
-  users?.forEach(u => {
-    tbody.innerHTML += `<tr><td>${u.name}</td><td>${u.phone}</td><td>${u.role}</td><td>${new Date(u.created_at).toLocaleDateString('ar-IQ')}</td><td style="color:${getStatusColor(u.status)}">${u.status}</td><td>${u.status!=='نشط'?'<button class="btn-action" data-act="activate" data-id="${u.id}">تفعيل</button>':''}${u.status!=='محظور'?'<button class="btn-action btn-delete" data-act="block" data-id="${u.id}">حظر</button>':''}<button class="btn-action" data-act="delete" data-id="${u.id}">حذف</button></td></tr>`;
-  });
-  tbody.onclick = (e) => {
-    const btn = e.target.closest('button[data-act]');
+  
+  if (users) {
+    users.forEach(function(u) {
+      var tr = document.createElement('tr');
+      var actions = '';
+      if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
+      if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
+      actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
+      
+      tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + 
+        new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + 
+        u.status + '</td><td>' + actions + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+  
+  tbody.onclick = function(e) {
+    var btn = e.target.closest('button[data-act]');
     if (!btn) return;
-    const id = btn.dataset.id, act = btn.dataset.act;
+    var id = btn.dataset.id;
+    var act = btn.dataset.act;
     if (act === 'activate') changeStatus(id, 'نشط');
     else if (act === 'block') changeStatus(id, 'محظور');
     else if (act === 'delete') deleteUser(id);
@@ -466,137 +557,212 @@ async function loadUsersTable() {
 }
 
 async function changeStatus(id, st) {
-  const c = window.supabaseClient; if (!c) return;
+  var c = window.supabaseClient; 
+  if (!c) return;
   await c.from('profiles').update({ status: st }).eq('id', id);
-  loadUsersTable(); loadStats();
+  loadUsersTable(); 
+  loadStats();
 }
 
 async function deleteUser(id) {
-  const c = window.supabaseClient; if (!c) return;
+  var c = window.supabaseClient; 
+  if (!c) return;
   if (confirm('تأكيد الحذف؟')) {
     await c.from('profiles').delete().eq('id', id);
-    loadUsersTable(); loadStats();
+    loadUsersTable(); 
+    loadStats();
   }
 }
 
-function getStatusColor(s) { return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; }
+function getStatusColor(s) { 
+  return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; 
+}
 
 async function handleLogout() {
-  const c = window.supabaseClient;
+  var c = window.supabaseClient;
   if (c) await c.auth.signOut();
-  app.currentUser = null; app.currentRole = null;
+  app.currentUser = null; 
+  app.currentRole = null;
   localStorage.removeItem('shira_screen');
   localStorage.removeItem('shira_admin_tab');
   showScreen('main-app');
 }
 
 // ==========================================
-// 11. دوال الطلبات والخريطة ✅ جديدة
+// 11. دوال الطلبات والخريطة
 // ==========================================
 function initOrderMap(lat, lng) {
-  const mapEl = document.getElementById('order-map');
+  var mapEl = document.getElementById('order-map');
   if (!mapEl || typeof L === 'undefined') return;
   mapEl.innerHTML = '';
-  const map = L.map('order-map').setView([lat, lng], 13);
+  var map = L.map('order-map').setView([lat, lng], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-  let marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-  marker.on('dragend', () => {
-    const pos = marker.getLatLng();
-    document.getElementById('order-lat').value = pos.lat;
-    document.getElementById('order-lng').value = pos.lng;
+  var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+  
+  marker.on('dragend', function() {
+    var pos = marker.getLatLng();
+    var latEl = document.getElementById('order-lat');
+    var lngEl = document.getElementById('order-lng');
+    if (latEl) latEl.value = pos.lat;
+    if (lngEl) lngEl.value = pos.lng;
   });
-  map.on('click', (e) => {
+  
+  map.on('click', function(e) {
     marker.setLatLng(e.latlng);
-    document.getElementById('order-lat').value = e.latlng.lat;
-    document.getElementById('order-lng').value = e.latlng.lng;
+    var latEl = document.getElementById('order-lat');
+    var lngEl = document.getElementById('order-lng');
+    if (latEl) latEl.value = e.latlng.lat;
+    if (lngEl) lngEl.value = e.latlng.lng;
   });
 }
 
 function bindOrderEvents() {
-  const locBtn = document.getElementById('use-current-location');
-  if (locBtn) locBtn.onclick = async () => {
-    const loc = await getCurrentLocation();
-    document.getElementById('order-lat').value = loc.lat;
-    document.getElementById('order-lng').value = loc.lng;
-    if (typeof L !== 'undefined') {
-      const mapEl = document.getElementById('order-map');
-      if (mapEl) { mapEl.innerHTML = ''; initOrderMap(loc.lat, loc.lng); }
-    }
-    alert('✅ تم تحديث الموقع');
-  };
-  
-  const submitBtn = document.getElementById('submit-order');
-  if (submitBtn) submitBtn.onclick = async () => {
-    const client = window.supabaseClient;
-    if (!client || !app.currentUser) return;
-    const serviceType = document.querySelector('input[name="service-type"]:checked')?.value;
-    const lat = document.getElementById('order-lat')?.value;
-    const lng = document.getElementById('order-lng')?.value;
-    const notes = document.getElementById('order-notes')?.value || '';
-    if (!serviceType || !lat || !lng) { showMsg(document.getElementById('order-msg'), 'يرجى تحديد الخدمة والموقع', 'error'); return; }
-    const { error } = await client.from('orders').insert({
-      user_id: app.currentUser.id, service_type: serviceType,
-      latitude: parseFloat(lat), longitude: parseFloat(lng),
-      notes: notes, status: 'pending', created_at: new Date().toISOString()
+  var locBtn = document.getElementById('use-current-location');
+  if (locBtn) locBtn.onclick = function() {
+    getCurrentLocation().then(function(loc) {
+      var latEl = document.getElementById('order-lat');
+      var lngEl = document.getElementById('order-lng');
+      if (latEl) latEl.value = loc.lat;
+      if (lngEl) lngEl.value = loc.lng;
+      if (typeof L !== 'undefined') {
+        var mapEl = document.getElementById('order-map');
+        if (mapEl) { 
+          mapEl.innerHTML = ''; 
+          initOrderMap(loc.lat, loc.lng); 
+        }
+      }
+      alert('✅ تم تحديث الموقع');
     });
-    const msgEl = document.getElementById('order-msg');
-    if (error) showMsg(msgEl, 'خطأ: ' + error.message, 'error');
-    else { showMsg(msgEl, '✅ تم إرسال الطلب', 'success'); setTimeout(() => loadActiveOrders(), 1000); }
   };
   
-  const editBtn = document.getElementById('edit-profile-btn');
-  if (editBtn) editBtn.onclick = () => showProfileEditor();
+  var submitBtn = document.getElementById('submit-order');
+  if (submitBtn) submitBtn.onclick = function() {
+    var client = window.supabaseClient;
+    if (!client || !app.currentUser) return;
+    
+    var serviceTypeEl = document.querySelector('input[name="service-type"]:checked');
+    var latEl = document.getElementById('order-lat');
+    var lngEl = document.getElementById('order-lng');
+    var notesEl = document.getElementById('order-notes');
+    
+    var serviceType = serviceTypeEl ? serviceTypeEl.value : '';
+    var lat = latEl ? latEl.value : '';
+    var lng = lngEl ? lngEl.value : '';
+    var notes = notesEl ? notesEl.value || '' : '';
+    
+    var msgEl = document.getElementById('order-msg');
+    
+    if (!serviceType || !lat || !lng) { 
+      showMsg(msgEl, 'يرجى تحديد الخدمة والموقع', 'error'); 
+      return; 
+    }
+    
+    client.from('orders').insert({
+      user_id: app.currentUser.id, 
+      service_type: serviceType,
+      latitude: parseFloat(lat), 
+      longitude: parseFloat(lng),
+      notes: notes, 
+      status: 'pending', 
+      created_at: new Date().toISOString()
+    }).then(function(res) {
+      if (res.error) showMsg(msgEl, 'خطأ: ' + res.error.message, 'error');
+      else { 
+        showMsg(msgEl, '✅ تم إرسال الطلب', 'success'); 
+        setTimeout(function() { loadActiveOrders(); }, 1000); 
+      }
+    });
+  };
+  
+  var editBtn = document.getElementById('edit-profile-btn');
+  if (editBtn) editBtn.onclick = function() { showProfileEditor(); };
 }
 
 function showProfileEditor() {
-  const c = document.getElementById('dash-content');
+  var c = document.getElementById('dash-content');
   if (!c || !app.currentUser) return;
-  c.innerHTML = `
-    <div class="welcome-card">
-      <h2>✏️ تعديل ملفي</h2>
-      <div class="form-group"><label>الاسم:</label><input type="text" id="edit-name" value="${app.currentUser.user_metadata?.name || ''}"></div>
-      <div class="form-group"><label>الهاتف:</label><input type="tel" value="${app.currentUser.user_metadata?.phone || ''}" disabled style="background:#f1f5f9;"></div>
-      <div class="form-group"><label>كلمة مرور جديدة (اختياري):</label><input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء"></div>
-      <button id="save-profile" class="btn-primary">💾 حفظ</button>
-      <button id="cancel-edit" class="btn-back" style="margin-right:1rem;">إلغاء</button>
-      <p id="profile-msg" class="auth-msg hidden"></p>
-    </div>`;
+  
+  var name = app.currentUser.user_metadata ? app.currentUser.user_metadata.name || '' : '';
+  var phone = app.currentUser.user_metadata ? app.currentUser.user_metadata.phone || '' : '';
+  
+  c.innerHTML = 
+    '<div class="welcome-card">' +
+      '<h2>✏️ تعديل ملفي</h2>' +
+      '<div class="form-group"><label>الاسم:</label><input type="text" id="edit-name" value="' + name + '"></div>' +
+      '<div class="form-group"><label>الهاتف:</label><input type="tel" value="' + phone + '" disabled style="background:#f1f5f9;"></div>' +
+      '<div class="form-group"><label>كلمة مرور جديدة (اختياري):</label><input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء"></div>' +
+      '<button id="save-profile" class="btn-primary">💾 حفظ</button>' +
+      '<button id="cancel-edit" class="btn-back" style="margin-right:1rem;">إلغاء</button>' +
+      '<p id="profile-msg" class="auth-msg hidden"></p>' +
+    '</div>';
+    
   document.getElementById('save-profile').onclick = saveProfile;
-  document.getElementById('cancel-edit').onclick = () => checkSession();
+  document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
 async function saveProfile() {
-  const client = window.supabaseClient;
+  var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
-  const name = document.getElementById('edit-name')?.value.trim();
-  const password = document.getElementById('edit-password')?.value;
-  const msgEl = document.getElementById('profile-msg');
-  if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
+  
+  var nameEl = document.getElementById('edit-name');
+  var passwordEl = document.getElementById('edit-password');
+  var msgEl = document.getElementById('profile-msg');
+  
+  var name = nameEl ? nameEl.value.trim() : '';
+  var password = passwordEl ? passwordEl.value : '';
+  
+  if (!name) { 
+    showMsg(msgEl, 'الاسم مطلوب', 'error'); 
+    return; 
+  }
+  
   try {
-    const { error: metaError } = await client.auth.updateUser({  { name } });
-    if (metaError) throw metaError;
-    if (password) { const { error: passError } = await client.auth.updateUser({ password }); if (passError) throw passError; }
-    const { error: profError } = await client.from('profiles').update({ name }).eq('id', app.currentUser.id);
-    if (profError) throw profError;
+    var metaRes = await client.auth.updateUser({  { name: name } });
+    if (metaRes.error) throw metaRes.error;
+    
+    if (password) { 
+      var passRes = await client.auth.updateUser({ password: password }); 
+      if (passRes.error) throw passRes.error; 
+    }
+    
+    var profRes = await client.from('profiles').update({ name: name }).eq('id', app.currentUser.id);
+    if (profRes.error) throw profRes.error;
+    
     showMsg(msgEl, '✅ تم الحفظ', 'success');
-    setTimeout(() => checkSession(), 1500);
-  } catch (err) { console.error(err); showMsg(msgEl, err.message || 'خطأ', 'error'); }
+    setTimeout(function() { checkSession(); }, 1500);
+  } catch (err) { 
+    console.error(err); 
+    showMsg(msgEl, err.message || 'خطأ', 'error'); 
+  }
 }
 
 async function loadActiveOrders() {
-  const client = window.supabaseClient;
+  var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
-  const {  orders } = await client.from('orders').select('*').eq('user_id', app.currentUser.id).eq('status', 'pending').order('created_at', { ascending: false });
-  const listEl = document.getElementById('active-orders');
+  
+  var res = await client.from('orders').select('*').eq('user_id', app.currentUser.id).eq('status', 'pending').order('created_at', { ascending: false });
+  var orders = res.data;
+  var listEl = document.getElementById('active-orders');
+  
   if (!listEl) return;
-  if (!orders?.length) { listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; return; }
-  listEl.innerHTML = orders.map(o => `
-    <div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;"><strong>${o.service_type==='taxi'?'🚗 تكسي':o.service_type==='delivery'?'🏍️ ديلفري':'🛒 تسوق'}</strong><span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">${o.status}</span></div>
-      <p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ${o.latitude?.toFixed(4)}, ${o.longitude?.toFixed(4)}</p>
-      ${o.notes ? `<p style="font-size:0.9rem;">📝 ${o.notes}</p>` : ''}
-      <p style="font-size:0.85rem;color:#94a3b8;">${new Date(o.created_at).toLocaleString('ar-IQ')}</p>
-    </div>`).join('');
+  
+  if (!orders || orders.length === 0) { 
+    listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; 
+    return; 
+  }
+  
+  var html = '';
+  orders.forEach(function(o) {
+    var serviceName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
+    html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + serviceName + '</strong>' +
+      '<span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
+      '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
+    if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
+    html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
+  });
+  
+  listEl.innerHTML = html;
 }
 
 // ==========================================
