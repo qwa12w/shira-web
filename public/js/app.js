@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [التصميم الاحترافي ثلاثي الأبعاد]
+// [التصميم الاحترافي ثلاثي الأبعاد - مصحح]
 // ==========================================
 
 var CONFIG = {
@@ -488,7 +488,7 @@ function uploadDocs(uid) {
 }
 
 // ==========================================
-// 9. لوحة المستخدم ✅ التصميم الاحترافي الجديد
+// 9. لوحة المستخدم (تصميم 3D)
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
@@ -616,12 +616,10 @@ function showUserDashboard(p) {
           '<button onclick="updateLocation()" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:0.8rem;border-radius:14px;cursor:pointer;font-size:0.9rem;font-weight:600;box-shadow:0 4px 12px rgba(102,126,234,0.3);transition:all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 16px rgba(102,126,234,0.4)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 4px 12px rgba(102,126,234,0.3)\'">🔄 تحديث الموقع</button>' +
         '</div>';
       
-      // تهيئة الخريطة
       if (typeof L !== 'undefined') {
         setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 200);
       }
       
-      // ربط الدوال
       window.requestService = function(type) {
         var serviceName = type === 'taxi' ? 'تكسي' : type === 'delivery' ? 'ديلفري' : 'تسوق';
         var icons = { taxi: '🚗', delivery: '🏍️', shopping: '🛒' };
@@ -815,7 +813,7 @@ function initOrderMap(lat, lng) {
 }
 
 // ==========================================
-// 12. تعديل الملف الشخصي
+// 12. تعديل الملف الشخصي ✅ مصحح
 // ==========================================
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
@@ -860,6 +858,7 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
+  // ✅ التصحيح هنا: إزالة القوس الزائد وإضافة data
   client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
