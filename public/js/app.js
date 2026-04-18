@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية المصححة]
+// [النسخة النهائية المصححة - التسجيل يعمل]
 // ==========================================
 
 var CONFIG = {
@@ -280,82 +280,148 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة
+// 8. المصادقة ✅ مصحح - التسجيل يعمل فعلياً
 // ==========================================
-function handleAuth(e) {
+async function handleAuth(e) {
   e.preventDefault();
+  
   var client = window.supabaseClient;
-  var phone = document.getElementById('auth-phone') ? document.getElementById('auth-phone').value.trim() : '';
-  var pass = document.getElementById('auth-password') ? document.getElementById('auth-password').value : '';
-  var name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : '';
+  if (!client) {
+    showMsg(document.getElementById('auth-msg'), 'جاري الاتصال... يرجى الانتظار', 'error');
+    return;
+  }
+  
+  var phoneEl = document.getElementById('auth-phone');
+  var passEl = document.getElementById('auth-password');
+  var nameEl = document.getElementById('auth-name');
   var msgEl = document.getElementById('auth-msg');
+  
+  var phone = phoneEl ? phoneEl.value.trim() : '';
+  var pass = passEl ? passEl.value : '';
+  var name = nameEl ? nameEl.value.trim() : '';
+  
   if (msgEl) msgEl.classList.add('hidden');
+  
+  if (!phone || !pass) {
+    showMsg(msgEl, 'يرجى إدخال الهاتف وكلمة المرور', 'error');
+    return;
+  }
 
-  if (app.authMode === 'register') {
-    if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return Promise.resolve(); }
-    
-    return getCurrentLocation().then(function(loc) {
-      return client.auth.signUp({
+  try {
+    if (app.authMode === 'register') {
+      // === تسجيل جديد ===
+      if (!name) {
+        showMsg(msgEl, 'الاسم مطلوب', 'error');
+        return;
+      }
+      
+      showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
+      
+      // 1. إنشاء الحساب في Supabase Auth
+      var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
         options: { data: { phone: phone, name: name, role: app.currentRole } }
-      }).then(function(signUpRes) {
-        if (signUpRes.error) throw signUpRes.error;
-        
-        return client.from('profiles').insert({
-          id: signUpRes.data.user.id, 
-          name: name, 
-          phone: phone, 
-          role: app.currentRole,
-          status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
-          latitude: loc.lat, 
-          longitude: loc.lng
-        }).then(function() {
-          if (app.currentRole !== 'زبون') return uploadDocs(signUpRes.data.user.id);
-          return Promise.resolve();
-        }).then(function() {
-          showMsg(msgEl, 'تم الإنشاء! ' + (app.currentRole === 'زبون' ? 'جاري التوجيه...' : 'بانتظار الموافقة'), 'success');
-          
-          setTimeout(function() {
-            if (app.currentRole === 'زبون') {
-              showUserDashboard({ name: name, phone: phone, role: app.currentRole, latitude: loc.lat, longitude: loc.lng });
-              showScreen('user-dashboard');
-              localStorage.setItem('shira_screen', 'user-dashboard');
-            } else {
-              showScreen('pending-screen');
-            }
-          }, 1500);
-        });
       });
-    }).catch(function(err) {
-      console.error(err);
-      showMsg(msgEl, err.message || 'خطأ', 'error');
-    });
-  } else {
-    return client.auth.signInWithPassword({ 
-      email: phone + '@shira.app', 
-      password: pass 
-    }).then(function(signInRes) {
-      if (signInRes.error) throw signInRes.error;
       
-      app.currentUser = signInRes.data.user;
-      return client.from('profiles').select('*').eq('id', app.currentUser.id).single();
-    }).then(function(pRes) {
-      var profile = pRes.data;
-      if (!profile) throw new Error('ملف غير موجود');
-      
-      if (profile.status === 'محظور') showScreen('blocked-screen');
-      else if (profile.status === 'قيد المراجعة') showScreen('pending-screen');
-      else { 
-        return showUserDashboard(profile).then(function() {
-          var saved = localStorage.getItem('shira_screen');
-          showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
-        });
+      if (signUpResult.error) throw signUpResult.error;
+      if (!signUpResult.data || !signUpResult.data.user) {
+        throw new Error('فشل إنشاء الحساب');
       }
-    }).catch(function(err) {
-      console.error(err);
-      showMsg(msgEl, err.message || 'خطأ', 'error');
-    });
+      
+      var userId = signUpResult.data.user.id;
+      console.log('✅ تم إنشاء الحساب في Auth:', userId);
+      
+      // 2. الحصول على الموقع
+      var loc = await getCurrentLocation();
+      
+      // 3. إنشاء الملف الشخصي في جدول profiles
+      var profileData = {
+        id: userId, 
+        name: name, 
+        phone: phone, 
+        role: app.currentRole,
+        status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
+        latitude: loc.lat, 
+        longitude: loc.lng
+      };
+      
+      var profileResult = await client.from('profiles').insert(profileData);
+      
+      if (profileResult.error) {
+        console.error('❌ خطأ في إنشاء الملف:', profileResult.error);
+        throw profileResult.error;
+      }
+      
+      console.log('✅ تم إنشاء الملف الشخصي');
+      
+      // 4. رفع الوثائق إذا لزم الأمر
+      if (app.currentRole !== 'زبون') {
+        await uploadDocs(userId);
+      }
+      
+      // 5. عرض رسالة النجاح
+      var successMsg = '✅ تم إنشاء الحساب بنجاح! ';
+      if (app.currentRole === 'زبون') {
+        successMsg += 'جاري التوجيه...';
+      } else {
+        successMsg += 'بانتظار موافقة الإدارة';
+      }
+      showMsg(msgEl, successMsg, 'success');
+      
+      // 6. التوجيه بعد 1.5 ثانية
+      setTimeout(function() {
+        if (app.currentRole === 'زبون') {
+          app.currentUser = signUpResult.data.user;
+          showUserDashboard({ 
+            name: name, 
+            phone: phone, 
+            role: app.currentRole, 
+            latitude: loc.lat, 
+            longitude: loc.lng 
+          });
+          showScreen('user-dashboard');
+          localStorage.setItem('shira_screen', 'user-dashboard');
+        } else {
+          showScreen('pending-screen');
+        }
+      }, 1500);
+      
+    } else {
+      // === تسجيل دخول ===
+      showMsg(msgEl, 'جاري تسجيل الدخول...', 'success');
+      
+      var signInResult = await client.auth.signInWithPassword({ 
+        email: phone + '@shira.app', 
+        password: pass 
+      });
+      
+      if (signInResult.error) throw signInResult.error;
+      
+      app.currentUser = signInResult.data.user;
+      console.log('✅ تم تسجيل الدخول:', app.currentUser.id);
+      
+      var profileResult = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
+      
+      if (profileResult.error) throw profileResult.error;
+      
+      var profile = profileResult.data;
+      if (!profile) throw new Error('الملف الشخصي غير موجود');
+      
+      if (profile.status === 'محظور') {
+        showScreen('blocked-screen');
+      } else if (profile.status === 'قيد المراجعة') {
+        showScreen('pending-screen');
+      } else {
+        await showUserDashboard(profile);
+        var saved = localStorage.getItem('shira_screen');
+        showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+      }
+    }
+    
+  } catch (err) {
+    console.error('❌ خطأ في المصادقة:', err);
+    showMsg(msgEl, err.message || 'حدث خطأ، حاول مرة أخرى', 'error');
   }
 }
 
