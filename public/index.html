@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تطبيق شراع</title>
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Leaflet CSS للخرائط -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -20,12 +24,10 @@
     <div id="main-app" class="hidden">
         <header class="header">
             <button id="btn-about" class="nav-btn small">عن شراع</button>
-            
             <div id="logo-container" class="logo">
                 <span>شراع</span>
                 <span class="sailboat-icon">⛵</span>
             </div>
-            
             <button id="btn-contact" class="nav-btn small">تواصل معنا</button>
         </header>
 
@@ -35,7 +37,6 @@
                 <p class="subtitle">تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
             </div>
 
-            <!-- الصف الأول: زبون | سائق تكسي -->
             <div class="services-grid top-row">
                 <div class="service-card customer-card" data-role="زبون">
                     <div class="icon-circle"><span class="icon">👤</span></div>
@@ -47,7 +48,6 @@
                 </div>
             </div>
 
-            <!-- الصف الثاني: بائع | ديلفري -->
             <div class="services-grid bottom-row">
                 <div class="service-card seller-card" data-role="بائع">
                     <div class="icon-circle"><span class="icon">🏪</span></div>
@@ -69,12 +69,10 @@
                 <h2 id="auth-role-title">تسجيل الدخول</h2>
                 <p id="auth-role-subtitle">أدخل بياناتك للوصول إلى لوحة التحكم</p>
             </div>
-            
             <div class="auth-tabs">
                 <button class="auth-tab active" data-mode="login">دخول</button>
                 <button class="auth-tab" data-mode="register">حساب جديد</button>
             </div>
-
             <form id="auth-form">
                 <div class="form-group hidden" id="name-group">
                     <input type="text" id="auth-name" placeholder="الاسم الكامل">
@@ -85,21 +83,16 @@
                 <div class="form-group">
                     <input type="password" id="auth-password" placeholder="كلمة المرور" required>
                 </div>
-                
-                <!-- حقول الوثائق (تظهر فقط للسائقين والديلفري والباعة) -->
                 <div id="documents-section" class="hidden">
-                    <h3 style="margin: 1rem 0; color: #0f172a;">الوثائق المطلوبة 📄</h3>
-                    
+                    <h3 style="margin:1rem 0;color:#0f172a;">الوثائق المطلوبة 📄</h3>
                     <div class="form-group">
                         <label>صورة رخصة القيادة</label>
                         <input type="file" id="doc-license" accept="image/*">
                     </div>
-                    
                     <div class="form-group">
                         <label>صورة شخصية</label>
                         <input type="file" id="doc-personal" accept="image/*" required>
                     </div>
-
                     <div id="vehicle-section" class="hidden">
                         <div class="form-group">
                             <label>صورة السيارة</label>
@@ -115,7 +108,6 @@
                             <input type="text" id="vehicle-plate" placeholder="رقم اللوحة">
                         </div>
                     </div>
-
                     <div id="bike-section" class="hidden">
                         <div class="form-group">
                             <label>صورة الدراجة</label>
@@ -130,14 +122,13 @@
                         </div>
                     </div>
                 </div>
-
                 <button type="submit" id="auth-submit" class="btn-primary">تسجيل الدخول</button>
             </form>
             <p class="auth-msg hidden" id="auth-msg"></p>
         </div>
     </div>
 
-    <!-- 4. لوحة تحكم المستخدم -->
+    <!-- 4. لوحة تحكم المستخدم - ✅ محدثة بواجهة الطلبات -->
     <div id="user-dashboard" class="hidden">
         <header class="user-header">
             <div class="user-info">
@@ -146,9 +137,83 @@
             </div>
             <button id="logout-user" class="btn-logout">خروج</button>
         </header>
+        
         <main class="user-content">
             <div id="dash-content">
-                <!-- المحتوى الديناميكي -->
+                <!-- واجهة الطلبات الجديدة -->
+                <div class="order-section">
+                    <h2>🚀 اطلب خدمتك الآن</h2>
+                    
+                    <!-- اختيار نوع الخدمة -->
+                    <div class="service-selector">
+                        <label>نوع الخدمة:</label>
+                        <div class="service-options">
+                            <label class="service-option">
+                                <input type="radio" name="service-type" value="taxi" checked>
+                                <span class="option-icon">🚗</span>
+                                <span>تكسي</span>
+                            </label>
+                            <label class="service-option">
+                                <input type="radio" name="service-type" value="delivery">
+                                <span class="option-icon">🏍️</span>
+                                <span>ديلفري</span>
+                            </label>
+                            <label class="service-option">
+                                <input type="radio" name="service-type" value="shopping">
+                                <span class="option-icon">🛒</span>
+                                <span>تسوق</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- اختيار الموقع من الخريطة -->
+                    <div class="map-section">
+                        <label>📍 حدد موقعك على الخريطة:</label>
+                        <div id="order-map" class="order-map"></div>
+                        <div class="map-info">
+                            <span id="selected-location">اضغط على الخريطة لاختيار الموقع</span>
+                            <input type="hidden" id="order-lat">
+                            <input type="hidden" id="order-lng">
+                        </div>
+                        <button type="button" id="use-current-location" class="btn-secondary">
+                            🎯 استخدام موقعي الحالي
+                        </button>
+                    </div>
+
+                    <!-- تفاصيل الطلب -->
+                    <div class="order-details">
+                        <div class="form-group">
+                            <label>ملاحظات إضافية:</label>
+                            <textarea id="order-notes" rows="3" placeholder="أضف أي تفاصيل تساعد السائق..."></textarea>
+                        </div>
+                        <div class="form-group" id="pickup-group" style="display:none;">
+                            <label>📦 موقع الاستلام (لخدمة الدليفري/التسوق):</label>
+                            <input type="text" id="pickup-address" placeholder="اكتب عنوان الاستلام">
+                        </div>
+                    </div>
+
+                    <!-- ملخص الطلب -->
+                    <div class="order-summary">
+                        <h3>📋 ملخص الطلب</h3>
+                        <p><strong>الخدمة:</strong> <span id="summary-service">تكسي</span></p>
+                        <p><strong>الموقع:</strong> <span id="summary-location">لم يتم التحديد</span></p>
+                        <p><strong>الملاحظات:</strong> <span id="summary-notes">-</span></p>
+                    </div>
+
+                    <!-- زر إرسال الطلب -->
+                    <button id="submit-order" class="btn-primary btn-large">
+                        ✅ تأكيد وإرسال الطلب
+                    </button>
+                    <p id="order-msg" class="order-msg hidden"></p>
+                </div>
+
+                <!-- قسم تتبع الطلبات النشطة -->
+                <div class="tracking-section hidden" id="tracking-section">
+                    <h2>📊 تتبع طلباتك</h2>
+                    <div id="active-orders" class="orders-list">
+                        <!-- الطلبات ستظهر هنا ديناميكياً -->
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -159,8 +224,8 @@
             <div class="pending-icon">⏳</div>
             <h2>طلبك قيد المراجعة</h2>
             <p>سيتم التواصل معك من قبل الإدارة للموافقة على حسابك</p>
-            <p style="margin-top: 1rem; color: #64748b; font-size: 0.9rem;">يمكنك إغلاق هذه الصفحة والعودة لاحقاً</p>
-            <button class="btn-primary" onclick="location.reload()" style="margin-top: 1rem;">تحديث الحالة</button>
+            <p style="margin-top:1rem;color:#64748b;font-size:0.9rem;">يمكنك إغلاق هذه الصفحة والعودة لاحقاً</p>
+            <button class="btn-primary" onclick="location.reload()" style="margin-top:1rem;">تحديث الحالة</button>
         </div>
     </div>
 
@@ -183,21 +248,20 @@
             <nav>
                 <button class="admin-nav-btn active" data-tab="dashboard">الرئيسية 📊</button>
                 <button class="admin-nav-btn" data-tab="users">المستخدمين 👥</button>
+                <button class="admin-nav-btn" data-tab="orders">الطلبات 📦</button>
                 <button class="admin-nav-btn" data-tab="settings">الإعدادات ⚙️</button>
             </nav>
             <button id="logout-admin" class="logout-btn">تسجيل خروج</button>
         </aside>
-
         <main class="admin-content">
             <section id="tab-dashboard" class="admin-tab active">
                 <h2>ملخص التطبيق</h2>
                 <div class="stats-grid">
                     <div class="stat-card blue"><h3>المستخدمين</h3><span id="stat-users">0</span></div>
                     <div class="stat-card yellow"><h3>بانتظار الموافقة</h3><span id="stat-pending">0</span></div>
-                    <div class="stat-card green"><h3>الحالة</h3><span id="stat-status">نشط</span></div>
+                    <div class="stat-card green"><h3>الطلبات النشطة</h3><span id="stat-orders">0</span></div>
                 </div>
             </section>
-
             <section id="tab-users" class="admin-tab hidden">
                 <h2>إدارة المستخدمين</h2>
                 <div class="table-container">
@@ -209,7 +273,17 @@
                     </table>
                 </div>
             </section>
-
+            <section id="tab-orders" class="admin-tab hidden">
+                <h2>إدارة الطلبات</h2>
+                <div class="table-container">
+                    <table id="orders-table">
+                        <thead>
+                            <tr><th>العميل</th><th>الخدمة</th><th>الموقع</th><th>الحالة</th><th>الوقت</th><th>إجراء</th></tr>
+                        </thead>
+                        <tbody id="orders-list"></tbody>
+                    </table>
+                </div>
+            </section>
             <section id="tab-settings" class="admin-tab hidden">
                 <h2>إعدادات النظام</h2>
                 <div class="setting-card">
@@ -221,9 +295,6 @@
                         <input type="checkbox" id="maintenance-toggle">
                         <span class="slider round"></span>
                     </label>
-                </div>
-                <div class="setting-card" style="margin-top: 20px;">
-                     <button id="reset-db" class="btn-danger">إعادة ضبط المصنع</button>
                 </div>
             </section>
         </main>
@@ -243,12 +314,15 @@
         <div class="modal-content">
             <button class="close-modal">&times;</button>
             <h2>تواصل معنا 📞</h2>
-            <p style="margin: 1rem 0;">للدعم الفني أو الاستفسارات:</p>
-            <p style="font-weight: 600; color: var(--primary);">support@shira.app</p>
-            <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-light);">فريق شراع جاهز لخدمتك 24/7</p>
+            <p style="margin:1rem 0;">للدعم الفني أو الاستفسارات:</p>
+            <p style="font-weight:600;color:var(--primary);">support@shira.app</p>
+            <p style="margin-top:1rem;font-size:0.9rem;color:var(--text-light);">فريق شراع جاهز لخدمتك 24/7</p>
         </div>
     </div>
 
+    <!-- Leaflet JS للخرائط -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <!-- ملفات JavaScript -->
     <script src="js/database.js"></script>
     <script src="js/app.js"></script>
