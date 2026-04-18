@@ -1,16 +1,16 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة المصححة الكاملة]
+// [النسخة النهائية المصححة]
 // ==========================================
 
-const CONFIG = {
+var CONFIG = {
   SUPABASE_URL: "https://qioiiidrwqvwzkveoxnm.supabase.co",
   SUPABASE_KEY: "sb_publishable_yLhyYMSCXttp1e_q_PAovA_zz1xgYDM",
   DEFAULT_LAT: 30.5085,
   DEFAULT_LNG: 47.7835
 };
 
-let app = {
+var app = {
   currentUser: null,
   currentRole: null,
   authMode: 'login',
@@ -37,7 +37,7 @@ function initSupabase() {
 // 2. إدارة الموقع الجغرافي
 // ==========================================
 function restoreLocation() {
-  const saved = localStorage.getItem('shira_user_location');
+  var saved = localStorage.getItem('shira_user_location');
   if (saved) {
     try {
       app.userLocation = JSON.parse(saved);
@@ -52,22 +52,22 @@ function saveLocation(lat, lng) {
   localStorage.setItem('shira_user_location', JSON.stringify(app.userLocation));
 }
 
-async function getCurrentLocation() {
-  const saved = restoreLocation();
-  if (saved && (Date.now() - saved.timestamp) < 86400000) return saved;
+function getCurrentLocation() {
+  var saved = restoreLocation();
+  if (saved && (Date.now() - saved.timestamp) < 86400000) return Promise.resolve(saved);
   
-  return new Promise((resolve) => {
+  return new Promise(function(resolve) {
     if (!navigator.geolocation) {
       resolve({ lat: CONFIG.DEFAULT_LAT, lng: CONFIG.DEFAULT_LNG });
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: Date.now() };
+      function(pos) {
+        var loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: Date.now() };
         saveLocation(loc.lat, loc.lng);
         resolve(loc);
       },
-      () => resolve(saved || { lat: CONFIG.DEFAULT_LAT, lng: CONFIG.DEFAULT_LNG }),
+      function() { resolve(saved || { lat: CONFIG.DEFAULT_LAT, lng: CONFIG.DEFAULT_LNG }); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   });
@@ -77,7 +77,7 @@ async function getCurrentLocation() {
 // 3. بدء التطبيق
 // ==========================================
 function bootstrap() {
-  const client = initSupabase();
+  var client = initSupabase();
   if (client) startApp();
   else setTimeout(bootstrap, 200);
 }
@@ -92,10 +92,10 @@ if (document.readyState === 'loading') {
 // 4. إدارة الشاشات
 // ==========================================
 function showScreen(id) {
-  document.querySelectorAll('body > div').forEach(el => {
+  document.querySelectorAll('body > div').forEach(function(el) {
     if (el.id !== 'about-modal' && el.id !== 'contact-modal') el.classList.add('hidden');
   });
-  const target = document.getElementById(id);
+  var target = document.getElementById(id);
   if (target) {
     target.classList.remove('hidden');
     if (id !== 'main-app') localStorage.setItem('shira_screen', id);
@@ -103,14 +103,16 @@ function showScreen(id) {
 }
 
 function restoreScreen() {
-  const saved = localStorage.getItem('shira_screen');
-  const savedTab = localStorage.getItem('shira_admin_tab');
+  var saved = localStorage.getItem('shira_screen');
+  var savedTab = localStorage.getItem('shira_admin_tab');
   
   if (saved && saved !== 'main-app') {
     showScreen(saved);
     if (saved === 'admin-panel' && savedTab) {
-      document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === savedTab));
-      document.querySelectorAll('.admin-tab').forEach(t => {
+      document.querySelectorAll('.admin-nav-btn').forEach(function(b) { 
+        b.classList.toggle('active', b.dataset.tab === savedTab); 
+      });
+      document.querySelectorAll('.admin-tab').forEach(function(t) {
         t.classList.add('hidden');
         if (t.id === 'tab-' + savedTab) t.classList.remove('hidden');
       });
@@ -123,47 +125,51 @@ function restoreScreen() {
 // ==========================================
 // 5. التحقق من الجلسة
 // ==========================================
-async function checkSession() {
-  const client = window.supabaseClient;
-  if (!client) return;
-  try {
-    const res = await client.auth.getSession();
-    const session = res.data ? res.data.session : null;
-    
+function checkSession() {
+  var client = window.supabaseClient;
+  if (!client) return Promise.resolve();
+  
+  return client.auth.getSession().then(function(res) {
+    var session = res.data ? res.data.session : null;
     restoreLocation();
     
     if (session) {
       app.currentUser = session.user;
-      const profRes = await client.from('profiles').select('*').eq('id', session.user.id).single();
-      const profile = profRes.data;
-      if (!profile) return;
-      
-      if (profile.status === 'محظور') showScreen('blocked-screen');
-      else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
-      else { 
-        await showUserDashboard(profile);
-        const saved = localStorage.getItem('shira_screen');
-        showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
-      }
-    } else {
-      showScreen('main-app');
+      return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-  } catch (e) { console.error('Session Error:', e); showScreen('main-app'); }
+    return Promise.resolve({ data: null });
+  }).then(function(profRes) {
+    var profile = profRes.data;
+    if (!profile) return;
+    
+    if (profile.status === 'محظور') showScreen('blocked-screen');
+    else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
+    else { 
+      return showUserDashboard(profile).then(function() {
+        var saved = localStorage.getItem('shira_screen');
+        showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+      });
+    }
+  }).catch(function(e) { 
+    console.error('Session Error:', e); 
+    showScreen('main-app'); 
+  });
 }
 
 // ==========================================
 // 6. المزامنة الذكية
 // ==========================================
 function setupRealtime() {
-  const client = window.supabaseClient;
+  var client = window.supabaseClient;
   if (!client) return;
   
   client.channel('profiles_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (p) => {
-      if (!document.getElementById('admin-panel') || !document.getElementById('admin-panel').classList.contains('hidden')) {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, function(p) {
+      var adminPanel = document.getElementById('admin-panel');
+      if (adminPanel && !adminPanel.classList.contains('hidden')) {
         if (p.eventType === 'INSERT' || p.eventType === 'UPDATE') {
           loadStats();
-          const tabUsers = document.getElementById('tab-users');
+          var tabUsers = document.getElementById('tab-users');
           if (tabUsers && !tabUsers.classList.contains('hidden')) loadUsersTable();
         }
       }
@@ -177,19 +183,19 @@ function setupRealtime() {
 // 7. إعداد الأحداث
 // ==========================================
 function setupEvents() {
-  document.querySelectorAll('.service-card').forEach(card => {
-    const role = card.dataset.role;
-    card.onclick = () => {
+  document.querySelectorAll('.service-card').forEach(function(card) {
+    var role = card.dataset.role;
+    card.onclick = function() {
       app.currentRole = role;
       showAuthScreen(role);
       showScreen('auth-screen');
     };
   });
 
-  var bind = function(id, fn) { 
+  function bind(id, fn) { 
     var el = document.getElementById(id); 
     if (el) el.onclick = fn; 
-  };
+  }
   
   bind('back-to-main', function() { showScreen('main-app'); });
   bind('back-to-home', function() { showScreen('main-app'); });
@@ -276,7 +282,7 @@ function setupEvents() {
 // ==========================================
 // 8. المصادقة
 // ==========================================
-async function handleAuth(e) {
+function handleAuth(e) {
   e.preventDefault();
   var client = window.supabaseClient;
   var phone = document.getElementById('auth-phone') ? document.getElementById('auth-phone').value.trim() : '';
@@ -285,74 +291,77 @@ async function handleAuth(e) {
   var msgEl = document.getElementById('auth-msg');
   if (msgEl) msgEl.classList.add('hidden');
 
-  try {
-    if (app.authMode === 'register') {
-      if (!name) throw new Error('الاسم مطلوب');
-      
-      var signUpRes = await client.auth.signUp({
+  if (app.authMode === 'register') {
+    if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return Promise.resolve(); }
+    
+    return getCurrentLocation().then(function(loc) {
+      return client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
         options: { data: { phone: phone, name: name, role: app.currentRole } }
+      }).then(function(signUpRes) {
+        if (signUpRes.error) throw signUpRes.error;
+        
+        return client.from('profiles').insert({
+          id: signUpRes.data.user.id, 
+          name: name, 
+          phone: phone, 
+          role: app.currentRole,
+          status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
+          latitude: loc.lat, 
+          longitude: loc.lng
+        }).then(function() {
+          if (app.currentRole !== 'زبون') return uploadDocs(signUpRes.data.user.id);
+          return Promise.resolve();
+        }).then(function() {
+          showMsg(msgEl, 'تم الإنشاء! ' + (app.currentRole === 'زبون' ? 'جاري التوجيه...' : 'بانتظار الموافقة'), 'success');
+          
+          setTimeout(function() {
+            if (app.currentRole === 'زبون') {
+              showUserDashboard({ name: name, phone: phone, role: app.currentRole, latitude: loc.lat, longitude: loc.lng });
+              showScreen('user-dashboard');
+              localStorage.setItem('shira_screen', 'user-dashboard');
+            } else {
+              showScreen('pending-screen');
+            }
+          }, 1500);
+        });
       });
-      
-      if (signUpRes.error) throw signUpRes.error;
-
-      var loc = await getCurrentLocation();
-      
-      await client.from('profiles').insert({
-        id: signUpRes.data.user.id, 
-        name: name, 
-        phone: phone, 
-        role: app.currentRole,
-        status: app.currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
-        latitude: loc.lat, 
-        longitude: loc.lng
-      });
-
-      if (app.currentRole !== 'زبون') await uploadDocs(signUpRes.data.user.id);
-
-      showMsg(msgEl, 'تم الإنشاء! ' + (app.currentRole === 'زبون' ? 'جاري التوجيه...' : 'بانتظار الموافقة'), 'success');
-      
-      setTimeout(function() {
-        if (app.currentRole === 'زبون') {
-          showUserDashboard({ name: name, phone: phone, role: app.currentRole, latitude: loc.lat, longitude: loc.lng });
-          showScreen('user-dashboard');
-          localStorage.setItem('shira_screen', 'user-dashboard');
-        } else {
-          showScreen('pending-screen');
-        }
-      }, 1500);
-    } else {
-      var signInRes = await client.auth.signInWithPassword({ 
-        email: phone + '@shira.app', 
-        password: pass 
-      });
-      
+    }).catch(function(err) {
+      console.error(err);
+      showMsg(msgEl, err.message || 'خطأ', 'error');
+    });
+  } else {
+    return client.auth.signInWithPassword({ 
+      email: phone + '@shira.app', 
+      password: pass 
+    }).then(function(signInRes) {
       if (signInRes.error) throw signInRes.error;
-
-      app.currentUser = signInRes.data.user;
-      var pRes = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
-      var profile = pRes.data;
       
+      app.currentUser = signInRes.data.user;
+      return client.from('profiles').select('*').eq('id', app.currentUser.id).single();
+    }).then(function(pRes) {
+      var profile = pRes.data;
       if (!profile) throw new Error('ملف غير موجود');
-
+      
       if (profile.status === 'محظور') showScreen('blocked-screen');
       else if (profile.status === 'قيد المراجعة') showScreen('pending-screen');
       else { 
-        await showUserDashboard(profile);
-        var saved = localStorage.getItem('shira_screen');
-        showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+        return showUserDashboard(profile).then(function() {
+          var saved = localStorage.getItem('shira_screen');
+          showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+        });
       }
-    }
-  } catch (err) {
-    console.error(err);
-    showMsg(msgEl, err.message || 'خطأ', 'error');
+    }).catch(function(err) {
+      console.error(err);
+      showMsg(msgEl, err.message || 'خطأ', 'error');
+    });
   }
 }
 
-async function uploadDocs(uid) {
+function uploadDocs(uid) {
   var client = window.supabaseClient;
-  if (!client) return;
+  if (!client) return Promise.resolve();
   
   var files = {
     license: document.getElementById('doc-license'),
@@ -362,33 +371,38 @@ async function uploadDocs(uid) {
   };
   
   var data = {};
+  var promises = [];
   
-  for (var k in files) {
-    if (files.hasOwnProperty(k)) {
-      var inp = files[k];
-      if (inp && inp.files && inp.files[0]) {
-        var f = inp.files[0];
-        var path = uid + '/' + k + '_' + Date.now() + '.' + f.name.split('.').pop();
-        var up = await client.storage.from('shira-docs').upload(path, f);
+  Object.keys(files).forEach(function(k) {
+    var inp = files[k];
+    if (inp && inp.files && inp.files[0]) {
+      var f = inp.files[0];
+      var path = uid + '/' + k + '_' + Date.now() + '.' + f.name.split('.').pop();
+      promises.push(client.storage.from('shira-docs').upload(path, f).then(function(up) {
         if (!up.error) {
           var urlRes = client.storage.from('shira-docs').getPublicUrl(path);
           data[k + '_image'] = urlRes.data.publicUrl;
         }
-      }
+      }));
     }
-  }
+  });
   
-  var vehicleTypeEl = document.getElementById('vehicle-type');
-  var vehicleColorEl = document.getElementById('vehicle-color');
-  var vehiclePlateEl = document.getElementById('vehicle-plate');
-  var bikeRegisteredEl = document.getElementById('bike-registered');
-  
-  if (vehicleTypeEl && vehicleTypeEl.value) data.vehicle_type = vehicleTypeEl.value;
-  if (vehicleColorEl && vehicleColorEl.value) data.vehicle_color = vehicleColorEl.value;
-  if (vehiclePlateEl && vehiclePlateEl.value) data.vehicle_plate = vehiclePlateEl.value;
-  if (bikeRegisteredEl && bikeRegisteredEl.value !== undefined) data.bike_registered = bikeRegisteredEl.value === 'true';
-  
-  if (Object.keys(data).length) await client.from('documents').insert({ user_id: uid });
+  return Promise.all(promises).then(function() {
+    var vehicleTypeEl = document.getElementById('vehicle-type');
+    var vehicleColorEl = document.getElementById('vehicle-color');
+    var vehiclePlateEl = document.getElementById('vehicle-plate');
+    var bikeRegisteredEl = document.getElementById('bike-registered');
+    
+    if (vehicleTypeEl && vehicleTypeEl.value) data.vehicle_type = vehicleTypeEl.value;
+    if (vehicleColorEl && vehicleColorEl.value) data.vehicle_color = vehicleColorEl.value;
+    if (vehiclePlateEl && vehiclePlateEl.value) data.vehicle_plate = vehiclePlateEl.value;
+    if (bikeRegisteredEl && bikeRegisteredEl.value !== undefined) data.bike_registered = bikeRegisteredEl.value === 'true';
+    
+    if (Object.keys(data).length) {
+      return client.from('documents').insert({ user_id: uid });
+    }
+    return Promise.resolve();
+  });
 }
 
 // ==========================================
@@ -434,52 +448,53 @@ function updateAuthForm() {
   }
 }
 
-async function showUserDashboard(p) {
-  var n = document.getElementById('dash-user-name');
-  var r = document.getElementById('dash-user-role');
-  if (n) n.textContent = p.name;
-  if (r) r.textContent = p.role;
-  
-  var c = document.getElementById('dash-content');
-  if (c) {
-    var canEdit = p.role === 'زبون';
-    var loc = await getCurrentLocation();
+function showUserDashboard(p) {
+  return getCurrentLocation().then(function(loc) {
+    var n = document.getElementById('dash-user-name');
+    var r = document.getElementById('dash-user-role');
+    if (n) n.textContent = p.name;
+    if (r) r.textContent = p.role;
     
-    var serviceOptions = '';
-    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="taxi" checked><span>🚗 تكسي</span></label>';
-    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="delivery"><span>🏍️ ديلفري</span></label>';
-    serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="shopping"><span>🛒 تسوق</span></label>';
-    
-    c.innerHTML = 
-      '<div class="welcome-card">' +
-        '<h2>مرحباً ' + p.name + ' 👋</h2>' +
-        '<p>لوحة تحكم ' + p.role + ' جاهزة</p>' +
-        (canEdit ? '<button id="edit-profile-btn" class="btn-secondary" style="margin-top:1rem;">✏️ تعديل ملفي</button>' : '') +
-        '<p style="margin-top:0.5rem;font-size:0.9rem;color:#64748b;">📍 ' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + '</p>' +
-      '</div>' +
-      '<div class="order-section" style="margin-top:2rem;">' +
-        '<h3>🚀 اطلب خدمتك</h3>' +
-        '<div class="service-selector">' +
-          '<label>نوع الخدمة:</label>' +
-          '<div class="service-options">' + serviceOptions + '</div>' +
+    var c = document.getElementById('dash-content');
+    if (c) {
+      var canEdit = p.role === 'زبون';
+      
+      var serviceOptions = '';
+      serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="taxi" checked><span>🚗 تكسي</span></label>';
+      serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="delivery"><span>🏍️ ديلفري</span></label>';
+      serviceOptions += '<label class="service-option"><input type="radio" name="service-type" value="shopping"><span>🛒 تسوق</span></label>';
+      
+      c.innerHTML = 
+        '<div class="welcome-card">' +
+          '<h2>مرحباً ' + p.name + ' 👋</h2>' +
+          '<p>لوحة تحكم ' + p.role + ' جاهزة</p>' +
+          (canEdit ? '<button id="edit-profile-btn" class="btn-secondary" style="margin-top:1rem;">✏️ تعديل ملفي</button>' : '') +
+          '<p style="margin-top:0.5rem;font-size:0.9rem;color:#64748b;">📍 ' + loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4) + '</p>' +
         '</div>' +
-        '<div class="map-section" style="margin:1rem 0;">' +
-          '<label>📍 الموقع:</label>' +
-          '<div id="order-map" style="height:200px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;">جاري التحميل...</div>' +
-          '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
-          '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
-          '<button type="button" id="use-current-location" class="btn-secondary" style="margin-top:0.5rem;">🎯 موقعي الحالي</button>' +
+        '<div class="order-section" style="margin-top:2rem;">' +
+          '<h3>🚀 اطلب خدمتك</h3>' +
+          '<div class="service-selector">' +
+            '<label>نوع الخدمة:</label>' +
+            '<div class="service-options">' + serviceOptions + '</div>' +
+          '</div>' +
+          '<div class="map-section" style="margin:1rem 0;">' +
+            '<label>📍 الموقع:</label>' +
+            '<div id="order-map" style="height:200px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;">جاري التحميل...</div>' +
+            '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
+            '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
+            '<button type="button" id="use-current-location" class="btn-secondary" style="margin-top:0.5rem;">🎯 موقعي الحالي</button>' +
+          '</div>' +
+          '<div class="form-group"><label>ملاحظات:</label><textarea id="order-notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>' +
+          '<button id="submit-order" class="btn-primary" style="width:100%;margin-top:1rem;">✅ إرسال الطلب</button>' +
+          '<p id="order-msg" class="order-msg hidden"></p>' +
         '</div>' +
-        '<div class="form-group"><label>ملاحظات:</label><textarea id="order-notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>' +
-        '<button id="submit-order" class="btn-primary" style="width:100%;margin-top:1rem;">✅ إرسال الطلب</button>' +
-        '<p id="order-msg" class="order-msg hidden"></p>' +
-      '</div>' +
-      '<div class="tracking-section" style="margin-top:2rem;"><h3>📊 طلباتي</h3><div id="active-orders"></div></div>';
-    
-    if (typeof L !== 'undefined') initOrderMap(loc.lat, loc.lng);
-    bindOrderEvents();
-    loadActiveOrders();
-  }
+        '<div class="tracking-section" style="margin-top:2rem;"><h3>📊 طلباتي</h3><div id="active-orders"></div></div>';
+      
+      if (typeof L !== 'undefined') initOrderMap(loc.lat, loc.lng);
+      bindOrderEvents();
+      loadActiveOrders();
+    }
+  });
 }
 
 function showMsg(el, txt, type) {
@@ -492,7 +507,7 @@ function showMsg(el, txt, type) {
 // ==========================================
 // 10. لوحة الإدارة
 // ==========================================
-async function handleAdminLogin() {
+function handleAdminLogin() {
   var u = document.getElementById('admin-user') ? document.getElementById('admin-user').value : '';
   var p = document.getElementById('admin-pass') ? document.getElementById('admin-pass').value : '';
   var err = document.getElementById('login-error');
@@ -506,71 +521,78 @@ async function handleAdminLogin() {
   }
 }
 
-async function loadStats() {
+function loadStats() {
+  var c = window.supabaseClient; 
+  if (!c) return Promise.resolve();
+  
+  return Promise.all([
+    c.from('profiles').select('*', { count: 'exact', head: true }),
+    c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة')
+  ]).then(function(results) {
+    var u = results[0];
+    var p = results[1];
+    var su = document.getElementById('stat-users');
+    var sp = document.getElementById('stat-pending');
+    if (su) su.textContent = u.count || 0;
+    if (sp) sp.textContent = p.count || 0;
+  });
+}
+
+function loadUsersTable() {
   var c = window.supabaseClient; 
   if (!c) return;
   
-  var u = await c.from('profiles').select('*', { count: 'exact', head: true });
-  var p = await c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة');
-  
-  var su = document.getElementById('stat-users');
-  var sp = document.getElementById('stat-pending');
-  if (su) su.textContent = u.count || 0;
-  if (sp) sp.textContent = p.count || 0;
+  c.from('profiles').select('*').order('created_at', { ascending: false }).then(function(res) {
+    var users = res.data;
+    var tbody = document.getElementById('users-list');
+    
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (users) {
+      users.forEach(function(u) {
+        var tr = document.createElement('tr');
+        var actions = '';
+        if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
+        if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
+        actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
+        
+        tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + 
+          new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + 
+          u.status + '</td><td>' + actions + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    
+    tbody.onclick = function(e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.dataset.id;
+      var act = btn.dataset.act;
+      if (act === 'activate') changeStatus(id, 'نشط');
+      else if (act === 'block') changeStatus(id, 'محظور');
+      else if (act === 'delete') deleteUser(id);
+    };
+  });
 }
 
-async function loadUsersTable() {
+function changeStatus(id, st) {
   var c = window.supabaseClient; 
-  if (!c) return;
-  
-  var res = await c.from('profiles').select('*').order('created_at', { ascending: false });
-  var users = res.data;
-  var tbody = document.getElementById('users-list');
-  
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  if (users) {
-    users.forEach(function(u) {
-      var tr = document.createElement('tr');
-      var actions = '';
-      if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
-      if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
-      actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
-      
-      tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + 
-        new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + 
-        u.status + '</td><td>' + actions + '</td>';
-      tbody.appendChild(tr);
-    });
-  }
-  
-  tbody.onclick = function(e) {
-    var btn = e.target.closest('button[data-act]');
-    if (!btn) return;
-    var id = btn.dataset.id;
-    var act = btn.dataset.act;
-    if (act === 'activate') changeStatus(id, 'نشط');
-    else if (act === 'block') changeStatus(id, 'محظور');
-    else if (act === 'delete') deleteUser(id);
-  };
+  if (!c) return Promise.resolve();
+  return c.from('profiles').update({ status: st }).eq('id', id).then(function() {
+    loadUsersTable(); 
+    loadStats();
+  });
 }
 
-async function changeStatus(id, st) {
-  var c = window.supabaseClient; 
-  if (!c) return;
-  await c.from('profiles').update({ status: st }).eq('id', id);
-  loadUsersTable(); 
-  loadStats();
-}
-
-async function deleteUser(id) {
+function deleteUser(id) {
   var c = window.supabaseClient; 
   if (!c) return;
   if (confirm('تأكيد الحذف؟')) {
-    await c.from('profiles').delete().eq('id', id);
-    loadUsersTable(); 
-    loadStats();
+    c.from('profiles').delete().eq('id', id).then(function() {
+      loadUsersTable(); 
+      loadStats();
+    });
   }
 }
 
@@ -578,9 +600,9 @@ function getStatusColor(s) {
   return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; 
 }
 
-async function handleLogout() {
+function handleLogout() {
   var c = window.supabaseClient;
-  if (c) await c.auth.signOut();
+  if (c) c.auth.signOut();
   app.currentUser = null; 
   app.currentRole = null;
   localStorage.removeItem('shira_screen');
@@ -700,7 +722,7 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
-async function saveProfile() {
+function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
   
@@ -716,53 +738,55 @@ async function saveProfile() {
     return; 
   }
   
-  try {
-    var metaRes = await client.auth.updateUser({  { name: name } });
+  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     
     if (password) { 
-      var passRes = await client.auth.updateUser({ password: password }); 
-      if (passRes.error) throw passRes.error; 
+      return client.auth.updateUser({ password: password }).then(function(passRes) { 
+        if (passRes.error) throw passRes.error; 
+      });
     }
-    
-    var profRes = await client.from('profiles').update({ name: name }).eq('id', app.currentUser.id);
+    return Promise.resolve();
+  }).then(function() {
+    return client.from('profiles').update({ name: name }).eq('id', app.currentUser.id);
+  }).then(function(profRes) {
     if (profRes.error) throw profRes.error;
-    
     showMsg(msgEl, '✅ تم الحفظ', 'success');
     setTimeout(function() { checkSession(); }, 1500);
-  } catch (err) { 
+  }).catch(function(err) { 
     console.error(err); 
     showMsg(msgEl, err.message || 'خطأ', 'error'); 
-  }
+  });
 }
 
-async function loadActiveOrders() {
+function loadActiveOrders() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
   
-  var res = await client.from('orders').select('*').eq('user_id', app.currentUser.id).eq('status', 'pending').order('created_at', { ascending: false });
-  var orders = res.data;
-  var listEl = document.getElementById('active-orders');
-  
-  if (!listEl) return;
-  
-  if (!orders || orders.length === 0) { 
-    listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; 
-    return; 
-  }
-  
-  var html = '';
-  orders.forEach(function(o) {
-    var serviceName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
-    html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + serviceName + '</strong>' +
-      '<span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
-      '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
-    if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
-    html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
+  client.from('orders').select('*').eq('user_id', app.currentUser.id).eq('status', 'pending').order('created_at', { ascending: false }).then(function(res) {
+    var orders = res.data;
+    var listEl = document.getElementById('active-orders');
+    
+    if (!listEl) return;
+    
+    if (!orders || orders.length === 0) { 
+      listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; 
+      return; 
+    }
+    
+    var html = '';
+    orders.forEach(function(o) {
+      var serviceName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
+      html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + serviceName + '</strong>' +
+        '<span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
+        '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
+      if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
+      html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
+    });
+    
+    listEl.innerHTML = html;
   });
-  
-  listEl.innerHTML = html;
 }
 
 // ==========================================
