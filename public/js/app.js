@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية - إصلاح التسجيل والتوجيه التلقائي]
+// [النسخة النهائية - جميع الإصلاحات]
 // ==========================================
 
 var CONFIG = {
@@ -129,7 +129,7 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة ✅ مصحح
+// 5. التحقق من الجلسة
 // ==========================================
 function checkSession() {
   var client = window.supabaseClient;
@@ -318,7 +318,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة ✅ مصحح - التوجيه التلقائي
+// 8. المصادقة
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -355,7 +355,6 @@ async function handleAuth(e) {
 
   try {
     if (app.authMode === 'register') {
-      // === تسجيل جديد ===
       if (!name) {
         showMsg(msgEl, 'الاسم مطلوب', 'error');
         return;
@@ -382,10 +381,8 @@ async function handleAuth(e) {
       var userId = signUpResult.data.user.id;
       console.log('✅ تم إنشاء الحساب في Auth:', userId);
       
-      // الحصول على الموقع
       var loc = await getCurrentLocation();
       
-      // إنشاء الملف الشخصي
       var profileData = {
         id: userId, 
         name: name, 
@@ -407,24 +404,19 @@ async function handleAuth(e) {
       
       console.log('✅ تم إنشاء الملف الشخصي بنجاح');
       
-      // رفع الوثائق إذا لزم الأمر
       if (currentRole !== 'زبون') {
         await uploadDocs(userId);
       }
       
-      // عرض رسالة النجاح
       var successMsg = '✅ تم إنشاء الحساب بنجاح! ';
       successMsg += (currentRole === 'زبون') ? 'جاري التوجيه...' : 'بانتظار موافقة الإدارة';
       showMsg(msgEl, successMsg, 'success');
       
-      // ✅ التوجيه التلقائي الفوري
       setTimeout(function() {
         if (currentRole === 'زبون') {
-          // تعيين المستخدم الحالي
           app.currentUser = signUpResult.data.user;
           app.currentRole = currentRole;
           
-          // عرض لوحة التحكم مباشرة
           showUserDashboard({ 
             name: name, 
             phone: phone, 
@@ -441,7 +433,6 @@ async function handleAuth(e) {
       }, 1000);
       
     } else {
-      // === تسجيل دخول ===
       console.log('جاري تسجيل الدخول لـ:', phone);
       showMsg(msgEl, 'جاري تسجيل الدخول...', 'success');
       
@@ -458,7 +449,6 @@ async function handleAuth(e) {
       app.currentUser = signInResult.data.user;
       console.log('✅ تم تسجيل الدخول:', app.currentUser.id);
       
-      // جلب الملف الشخصي
       var profileResult = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
       
       if (profileResult.error) {
@@ -471,7 +461,6 @@ async function handleAuth(e) {
       
       console.log('الملف الشخصي:', profile);
       
-      // التحقق من الحالة والتوجيه
       if (profile.status === 'محظور') {
         showScreen('blocked-screen');
       } else if (profile.status === 'قيد المراجعة') {
@@ -626,60 +615,85 @@ function handleAdminLogin() {
 }
 
 function loadStats() {
-  var c = window.supabaseClient; if (!c) return Promise.resolve();
-  return Promise.all([
+  var c = window.supabaseClient; 
+  if (!c) return;
+  
+  Promise.all([
     c.from('profiles').select('*', { count: 'exact', head: true }),
     c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة')
   ]).then(function(results) {
+    if (results[0].error) {
+      console.error('خطأ في الإحصائيات:', results[0].error);
+      return;
+    }
+    
     var su = document.getElementById('stat-users');
     var sp = document.getElementById('stat-pending');
     if (su) su.textContent = results[0].count || 0;
     if (sp) sp.textContent = results[1].count || 0;
+  }).catch(function(err) {
+    console.error('خطأ في جلب الإحصائيات:', err);
   });
 }
 
 function loadUsersTable() {
-  var c = window.supabaseClient; if (!c) return;
-  c.from('profiles').select('*').order('created_at', { ascending: false }).then(function(res) {
-    var users = res.data;
-    var tbody = document.getElementById('users-list');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    if (users) {
-      users.forEach(function(u) {
-        var tr = document.createElement('tr');
-        var actions = '';
-        if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
-        if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
-        actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
-        tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td><td>' + actions + '</td>';
-        tbody.appendChild(tr);
-      });
-    }
-    tbody.onclick = function(e) {
-      var btn = e.target.closest('button[data-act]');
-      if (!btn) return;
-      var id = btn.dataset.id, act = btn.dataset.act;
-      if (act === 'activate') changeStatus(id, 'نشط');
-      else if (act === 'block') changeStatus(id, 'محظور');
-      else if (act === 'delete') deleteUser(id);
-    };
-  });
+  var c = window.supabaseClient; 
+  if (!c) return;
+  
+  c.from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .then(function(res) {
+      if (res.error) {
+        console.error('خطأ في جلب المستخدمين:', res.error);
+        return;
+      }
+      
+      var users = res.data;
+      var tbody = document.getElementById('users-list');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      
+      if (users) {
+        users.forEach(function(u) {
+          var tr = document.createElement('tr');
+          var actions = '';
+          if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
+          if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
+          actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
+          tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td><td>' + actions + '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+    })
+    .catch(function(err) {
+      console.error('خطأ في جلب المستخدمين:', err);
+    });
 }
 
 function changeStatus(id, st) {
-  var c = window.supabaseClient; if (!c) return Promise.resolve();
-  return c.from('profiles').update({ status: st }).eq('id', id).then(function() { loadUsersTable(); loadStats(); });
+  var c = window.supabaseClient; 
+  if (!c) return Promise.resolve();
+  return c.from('profiles').update({ status: st }).eq('id', id).then(function() { 
+    loadUsersTable(); 
+    loadStats(); 
+  });
 }
 
 function deleteUser(id) {
-  var c = window.supabaseClient; if (!c) return;
+  var c = window.supabaseClient; 
+  if (!c) return;
   if (confirm('تأكيد الحذف؟')) {
-    c.from('profiles').delete().eq('id', id).then(function() { loadUsersTable(); loadStats(); });
+    c.from('profiles').delete().eq('id', id).then(function() { 
+      loadUsersTable(); 
+      loadStats(); 
+    });
   }
 }
 
-function getStatusColor(s) { return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; }
+function getStatusColor(s) { 
+  return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; 
+}
 
 function handleLogout() {
   var c = window.supabaseClient;
@@ -744,6 +758,9 @@ function bindOrderEvents() {
     }).then(function(res) {
       if (res.error) showMsg(msgEl, 'خطأ: ' + res.error.message, 'error');
       else { showMsg(msgEl, '✅ تم إرسال الطلب', 'success'); setTimeout(function() { loadActiveOrders(); }, 1000); }
+    }).catch(function(err) {
+      console.error('خطأ في إرسال الطلب:', err);
+      showMsg(msgEl, 'حدث خطأ في إرسال الطلب', 'error');
     });
   };
   
@@ -788,21 +805,40 @@ function saveProfile() {
 function loadActiveOrders() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
-  client.from('orders').select('*').eq('user_id', app.currentUser.id).eq('status', 'pending').order('created_at', { ascending: false }).then(function(res) {
-    var orders = res.data;
-    var listEl = document.getElementById('active-orders');
-    if (!listEl) return;
-    if (!orders || orders.length === 0) { listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; return; }
-    var html = '';
-    orders.forEach(function(o) {
-      var sName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
-      html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;"><div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + sName + '</strong><span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
-        '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
-      if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
-      html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
+  
+  client.from('orders')
+    .select('*')
+    .eq('user_id', app.currentUser.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .then(function(res) {
+      if (res.error) {
+        console.error('خطأ في جلب الطلبات:', res.error);
+        return;
+      }
+      
+      var orders = res.data;
+      var listEl = document.getElementById('active-orders');
+      if (!listEl) return;
+      
+      if (!orders || orders.length === 0) { 
+        listEl.innerHTML = '<p style="color:#64748b;">لا توجد طلبات نشطة</p>'; 
+        return; 
+      }
+      
+      var html = '';
+      orders.forEach(function(o) {
+        var sName = o.service_type === 'taxi' ? '🚗 تكسي' : o.service_type === 'delivery' ? '🏍️ ديلفري' : '🛒 تسوق';
+        html += '<div style="background:#fff;padding:1rem;border-radius:12px;margin:0.5rem 0;border:1px solid #e2e8f0;"><div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + sName + '</strong><span style="background:#f1f5f9;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.85rem;">' + o.status + '</span></div>' +
+          '<p style="margin:0.5rem 0;font-size:0.9rem;color:#64748b;">📍 ' + (o.latitude ? o.latitude.toFixed(4) : '') + ', ' + (o.longitude ? o.longitude.toFixed(4) : '') + '</p>';
+        if (o.notes) html += '<p style="font-size:0.9rem;">📝 ' + o.notes + '</p>';
+        html += '<p style="font-size:0.85rem;color:#94a3b8;">' + new Date(o.created_at).toLocaleString('ar-IQ') + '</p></div>';
+      });
+      listEl.innerHTML = html;
+    })
+    .catch(function(err) {
+      console.error('خطأ في جلب الطلبات:', err);
     });
-    listEl.innerHTML = html;
-  });
 }
 
 // ==========================================
