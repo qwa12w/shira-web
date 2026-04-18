@@ -141,7 +141,7 @@ function checkSession() {
       app.currentUser = session.user;
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-    return Promise.resolve({ data: null });
+    return Promise.resolve({  null });
   }).then(function(profRes) {
     var profile = profRes.data;
     if (!profile) return;
@@ -694,7 +694,7 @@ function saveProfile() {
   var password = document.getElementById('edit-password')?.value;
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
