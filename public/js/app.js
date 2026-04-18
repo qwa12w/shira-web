@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [الإصدار النهائي - إصلاح خطأ role و RLS]
+// [النسخة النهائية المصححة بالكامل]
 // ==========================================
 
 var CONFIG = {
@@ -106,7 +106,6 @@ function restoreScreen() {
   var saved = localStorage.getItem('shira_screen');
   var savedTab = localStorage.getItem('shira_admin_tab');
   
-  // ✅ استعادة الدور المحفوظ أيضاً
   var savedRole = localStorage.getItem('shira_role');
   if (savedRole) app.currentRole = savedRole;
   
@@ -127,32 +126,37 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة
+// 5. التحقق من الجلسة ✅ مصحح
 // ==========================================
 function checkSession() {
   var client = window.supabaseClient;
-  if (!client) return Promise.resolve();
+  if (!client) return;
   
-  return client.auth.getSession().then(function(res) {
+  client.auth.getSession().then(function(res) {
     var session = res.data ? res.data.session : null;
     restoreLocation();
     
     if (session) {
       app.currentUser = session.user;
-      return client.from('profiles').select('*').eq('id', session.user.id).single();
-    }
-    return Promise.resolve({  null });
-  }).then(function(profRes) {
-    var profile = profRes.data;
-    if (!profile) return;
-    
-    if (profile.status === 'محظور') showScreen('blocked-screen');
-    else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
-    else { 
-      return showUserDashboard(profile).then(function() {
-        var saved = localStorage.getItem('shira_screen');
-        showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+      
+      client.from('profiles').select('*').eq('id', session.user.id).single().then(function(profRes) {
+        var profile = profRes.data;
+        if (!profile) return;
+        
+        if (profile.status === 'محظور') showScreen('blocked-screen');
+        else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
+        else { 
+          showUserDashboard(profile).then(function() {
+            var saved = localStorage.getItem('shira_screen');
+            showScreen(saved && saved !== 'main-app' ? saved : 'user-dashboard');
+          });
+        }
+      }).catch(function(e) {
+         console.error('Profile Error:', e);
+         showScreen('main-app');
       });
+    } else {
+      showScreen('main-app');
     }
   }).catch(function(e) { 
     console.error('Session Error:', e); 
@@ -184,14 +188,13 @@ function setupRealtime() {
 }
 
 // ==========================================
-// 7. إعداد الأحداث ✅ تم إصلاح حفظ الدور
+// 7. إعداد الأحداث
 // ==========================================
 function setupEvents() {
   document.querySelectorAll('.service-card').forEach(function(card) {
     var role = card.dataset.role;
     card.onclick = function() {
       app.currentRole = role;
-      // ✅ حفظ الدور في التخزين المحلي لمنع فقدانه عند التحديث
       localStorage.setItem('shira_role', role);
       showAuthScreen(role);
       showScreen('auth-screen');
@@ -286,7 +289,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة ✅ إصلاح كامل لقضية role
+// 8. المصادقة ✅ مصحح
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -318,7 +321,6 @@ async function handleAuth(e) {
     return;
   }
 
-  // ✅ الحصول على الدور بأمان من المتغير أو التخزين المحلي
   var currentRole = app.currentRole || localStorage.getItem('shira_role') || 'زبون';
 
   try {
@@ -344,7 +346,6 @@ async function handleAuth(e) {
       
       var loc = await getCurrentLocation();
       
-      // ✅ إنشاء الملف الشخصي مع ضمان عدم وجود قيم null
       var profileData = {
         id: userId, 
         name: name, 
@@ -694,7 +695,7 @@ function saveProfile() {
   var password = document.getElementById('edit-password')?.value;
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
-  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
