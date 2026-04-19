@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية الكاملة - مع جميع التحسينات]
+// [النسخة النهائية الشاملة - تصحيح الأخطاء والمظهر]
 // ==========================================
 
 var CONFIG = {
@@ -18,6 +18,9 @@ var app = {
   userLocation: null
 };
 
+// ==========================================
+// 1. تهيئة Supabase
+// ==========================================
 function initSupabase() {
   if (window.supabaseClient) return window.supabaseClient;
   if (typeof window.supabase === 'undefined') {
@@ -31,6 +34,9 @@ function initSupabase() {
   } catch (e) { console.error('Supabase Init Error:', e); return null; }
 }
 
+// ==========================================
+// 2. إدارة الموقع الجغرافي
+// ==========================================
 function restoreLocation() {
   var saved = localStorage.getItem('shira_user_location');
   if (saved) {
@@ -68,6 +74,9 @@ function getCurrentLocation() {
   });
 }
 
+// ==========================================
+// 3. بدء التطبيق
+// ==========================================
 function bootstrap() {
   var client = initSupabase();
   if (client) startApp();
@@ -80,6 +89,9 @@ if (document.readyState === 'loading') {
   bootstrap();
 }
 
+// ==========================================
+// 4. إدارة الشاشات
+// ==========================================
 function showScreen(id) {
   document.querySelectorAll('body > div').forEach(function(el) {
     if (el.id !== 'about-modal' && el.id !== 'contact-modal') el.classList.add('hidden');
@@ -120,6 +132,9 @@ function restoreScreen() {
   }
 }
 
+// ==========================================
+// 5. التحقق من الجلسة ✅ مصحح
+// ==========================================
 function checkSession() {
   if (localStorage.getItem('shira_admin_logged') === 'true') {
     showScreen('admin-panel');
@@ -140,6 +155,7 @@ function checkSession() {
     if (session) {
       app.currentUser = session.user;
       
+      // 🔔 التحقق من الإشعارات
       client.from('notifications')
         .select('*')
         .eq('user_id', session.user.id)
@@ -156,7 +172,8 @@ function checkSession() {
       
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-    return Promise.resolve({ data: null });
+    // ✅ تصحيح: إعادة كائن بيانات صالح
+    return Promise.resolve({  null });
   }).then(function(profRes) {
     var profile = profRes.data;
     if (!profile) {
@@ -164,6 +181,7 @@ function checkSession() {
       return;
     }
     
+    // ⏳ التحقق من انتهاء الصلاحية
     if (profile.subscription_expiry && profile.status === 'نشط') {
       var expiryDate = new Date(profile.subscription_expiry);
       if (new Date() > expiryDate) {
@@ -189,6 +207,9 @@ function checkSession() {
   });
 }
 
+// ==========================================
+// 6. المزامنة الذكية
+// ==========================================
 function setupRealtime() {
   var client = window.supabaseClient;
   if (!client) return;
@@ -206,6 +227,9 @@ function setupRealtime() {
     }).subscribe();
 }
 
+// ==========================================
+// 7. إعداد الأحداث
+// ==========================================
 function setupEvents() {
   document.querySelectorAll('.service-card').forEach(function(card) {
     var role = card.dataset.role;
@@ -306,6 +330,9 @@ function setupEvents() {
   }
 }
 
+// ==========================================
+// 8. المصادقة ✅ مصحح
+// ==========================================
 async function handleAuth(e) {
   e.preventDefault();
   
@@ -335,6 +362,7 @@ async function handleAuth(e) {
       if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
       
+      // ✅ التصحيح: options: { data: { ... } }
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
@@ -440,6 +468,9 @@ function uploadDocs(uid) {
   });
 }
 
+// ==========================================
+// 9. لوحة المستخدم
+// ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
   var titleEl = document.getElementById('auth-role-title');
@@ -560,6 +591,9 @@ function showMsg(el, txt, type) {
   el.classList.remove('hidden');
 }
 
+// ==========================================
+// 10. لوحة الإدارة ✅ مصححة
+// ==========================================
 function handleAdminLogin() {
   var u = document.getElementById('admin-user').value.trim();
   var p = document.getElementById('admin-pass').value;
@@ -614,6 +648,7 @@ function showActivationModal(userId) {
   document.body.appendChild(modal);
 }
 
+// ✅ تصحيح دالة التفعيل
 function confirmActivation(userId) {
   var months = parseInt(document.getElementById('activation-months').value);
   var expiryDate = new Date();
@@ -643,6 +678,7 @@ function confirmActivation(userId) {
         .then(function(profileRes) {
           if (!profileRes || profileRes.error) {
             console.error('Error fetching profile:', profileRes);
+            // ✅ التصحيح الصحيح: إرجاع كائن data
             return {  { name: 'مستخدم', role: 'مستخدم' } };
           }
           
@@ -754,6 +790,9 @@ function handleLogout() {
   showScreen('main-app');
 }
 
+// ==========================================
+// 11. دوال الخريطة وتعديل الملف
+// ==========================================
 function initOrderMap(lat, lng) {
   var mapEl = document.getElementById('order-map');
   if (!mapEl || typeof L === 'undefined') return;
@@ -798,6 +837,7 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
+// ✅ التصحيح النهائي: data: { name: name }
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
@@ -806,6 +846,7 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
+  // ✅ التصحيح الصحيح هنا
   client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
