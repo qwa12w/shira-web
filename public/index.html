@@ -6,54 +6,107 @@
   <title>شراع | Shira App</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    :root { --primary: #667eea; --secondary: #764ba2; --bg: #f8f9fa; --card: #ffffff; --text: #2d3748; }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
+    /* ===== تنسيقات عامة ===== */
+    :root { --primary: #f59e0b; --text-dark: #1e293b; --text-gray: #64748b; --bg: #f8fafc; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text-dark); overflow-x: hidden; }
     .hidden { display: none !important; }
-    .center-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; }
-    .card { background: var(--card); padding: 24px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); width: 100%; max-width: 400px; margin: 10px auto; }
-    input, select { width: 100%; padding: 14px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; background: #fff; transition: 0.3s; }
+    button { cursor: pointer; border: none; font-family: inherit; }
+    
+    /* ===== الشاشة الرئيسية (الرأس) ===== */
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 20px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .header-btn {
+      background: #f1f5f9; color: var(--text-gray); padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500;
+    }
+    .logo { font-size: 28px; font-weight: bold; color: #d97706; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    
+    /* ===== محتوى الصفحة الرئيسية ===== */
+    .hero-section { text-align: center; padding: 30px 20px 20px; }
+    .hero-title { font-size: 36px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; }
+    .hero-title span { color: var(--primary); }
+    .hero-subtitle { color: var(--text-gray); font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+    
+    /* ===== شبكة الخدمات ===== */
+    .services-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      padding: 20px; max-width: 500px; margin: 0 auto;
+    }
+    .service-card {
+      background: #fff; border-radius: 24px; padding: 30px 15px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: transform 0.2s; cursor: pointer;
+      min-height: 180px; text-align: center;
+    }
+    .service-card:active { transform: scale(0.96); }
+    .card-icon { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 15px; }
+    .card-title { font-size: 20px; font-weight: 700; color: var(--text-dark); }
+    
+    /* ألوان البطاقات */
+    .icon-taxi { background: #eff6ff; } .icon-customer { background: #fef3c7; }
+    .icon-delivery { background: #f0fdf4; } .icon-store { background: #faf5ff; }
+    
+    /* ===== باقي الشاشات (مخفية) ===== */
+    .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg); }
+    .auth-card { background: #fff; padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    input, select { width: 100%; padding: 14px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 15px; }
     input:focus { outline: none; border-color: var(--primary); }
-    button { cursor: pointer; border: none; border-radius: 14px; font-weight: 700; transition: transform 0.1s; font-size: 15px; }
-    button:active { transform: scale(0.97); }
-    .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: #fff; width: 100%; padding: 14px; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
-    .btn-secondary { background: #edf2f7; color: #4a5568; width: 100%; padding: 12px; }
-    .auth-tabs { display: flex; gap: 8px; background: #edf2f7; padding: 5px; border-radius: 14px; margin: 15px 0; }
-    .auth-tab { flex: 1; padding: 10px; border-radius: 10px; background: transparent; color: #4a5568; }
-    .auth-tab.active { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .service-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 340px; margin-top: 25px; }
-    .service-card { padding: 25px 10px; border-radius: 20px; color: #fff; font-size: 16px; font-weight: bold; box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-    .admin-btn { margin-top: 40px; background: none; border: none; color: #a0aec0; font-size: 24px; cursor: pointer; opacity: 0.6; transition: 0.3s; }
-    .admin-btn:hover { opacity: 1; transform: rotate(90deg); }
-    .admin-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-    .admin-table th { background: #f7fafc; padding: 12px; text-align: right; font-size: 14px; }
-    .admin-table td { padding: 12px; border-bottom: 1px solid #edf2f7; font-size: 14px; }
-    .btn-action { background: #edf2f7; color: #2d3748; padding: 6px 10px; border-radius: 8px; font-size: 12px; margin: 2px; }
-    .auth-msg { margin-top: 10px; font-weight: 600; font-size: 14px; }
-    .error { color: #e53e3e; }
-    .success { color: #38a169; }
+    .btn-primary { width: 100%; padding: 15px; background: var(--text-dark); color: #fff; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+    .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 5px; border-radius: 10px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; font-weight: 600; color: var(--text-gray); background: transparent; }
+    .auth-tab.active { background: #fff; color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    
+    .dashboard { padding: 20px; max-width: 600px; margin: 0 auto; }
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 10px; overflow: hidden; }
+    .admin-table th { background: #f8fafc; padding: 12px; text-align: right; font-size: 13px; color: var(--text-gray); }
+    .admin-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .btn-sm { padding: 5px 10px; border-radius: 6px; font-size: 12px; margin: 2px; }
   </style>
 </head>
 <body>
 
+  <!-- 1. الشاشة الرئيسية -->
   <div id="main-app">
-    <div class="center-screen">
-      <h1 style="margin-bottom: 5px; font-size: 2rem;">شراع ⛵</h1>
-      <p style="color: #718096; margin-bottom: 20px;">منصة الخدمات المتكاملة</p>
-      <div class="service-grid">
-        <button class="service-card" data-role="زبون" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">👤<span>زبون</span></button>
-        <button class="service-card" data-role="سائق تكسي" style="background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);">🚗<span>سائق تكسي</span></button>
-        <button class="service-card" data-role="ديلفري" style="background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);">🏍️<span>ديلفري</span></button>
-        <button class="service-card" data-role="متجر" style="background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);">🏪<span>متجر</span></button>
+    <header class="header">
+      <button class="header-btn">عن شراع</button>
+      <div id="logo-container" class="logo">⛵ شراع</div>
+      <button class="header-btn">تواصل معنا</button>
+    </header>
+
+    <main>
+      <div class="hero-section">
+        <h1 class="hero-title">كل خدماتك في <br><span>تطبيق واحد</span></h1>
+        <p class="hero-subtitle">تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
       </div>
-      <button id="logo-container" class="admin-btn">⚙️</button>
-    </div>
+
+      <div class="services-grid">
+        <button class="service-card" data-role="سائق تكسي">
+          <div class="card-icon icon-taxi">🚗</div>
+          <div class="card-title">سائق تكسي</div>
+        </button>
+        <button class="service-card" data-role="زبون">
+          <div class="card-icon icon-customer">👤</div>
+          <div class="card-title">زبون</div>
+        </button>
+        <button class="service-card" data-role="ديلفري">
+          <div class="card-icon icon-delivery">🏍️</div>
+          <div class="card-title">ديلفري</div>
+        </button>
+        <button class="service-card" data-role="متجر">
+          <div class="card-icon icon-store">🏪</div>
+          <div class="card-title">بائع</div>
+        </button>
+      </div>
+    </main>
   </div>
 
-  <div id="auth-screen" class="hidden center-screen">
-    <div class="card">
-      <button id="back-to-main" style="background: none; color: var(--primary); margin-bottom: 10px; float: left; font-size: 14px;">↩️</button>
-      <h2 id="auth-role-title" style="margin: 10px 0 5px 0;">تسجيل</h2>
+  <!-- 2. شاشة التسجيل والدخول -->
+  <div id="auth-screen" class="hidden auth-screen">
+    <div class="auth-card">
+      <button id="back-to-main" style="background:none; color:#64748b; margin-bottom:15px; float:left;">↩️ رجوع</button>
+      <h2 id="auth-role-title" style="margin-bottom: 20px; text-align: center;">مرحباً بك</h2>
       <div class="auth-tabs">
         <button class="auth-tab active" data-mode="login">دخول</button>
         <button class="auth-tab" data-mode="register">حساب جديد</button>
@@ -62,66 +115,80 @@
         <input type="tel" id="auth-phone" placeholder="رقم الهاتف" required>
         <div id="name-group" class="hidden"><input type="text" id="auth-name" placeholder="الاسم الكامل"></div>
         <input type="password" id="auth-password" placeholder="كلمة المرور" required>
-        <div id="documents-section" class="hidden" style="text-align: right; margin: 15px 0 10px 0; border-top: 1px solid #eee; padding-top: 15px;">
-          <h4 style="margin: 0 0 10px 0; font-size: 14px;">📂 الوثائق</h4>
-          <label style="display:block; margin-bottom: 4px; font-size: 13px;">🆔 رخصة/هوية</label>
-          <input type="file" id="doc-license">
+        <div id="documents-section" class="hidden" style="border-top:1px solid #eee; padding-top:15px; margin-top:10px;">
+          <label style="font-size:13px; color:#64748b;">📂 الوثائق المطلوبة</label>
+          <input type="file" id="doc-license" style="padding:10px;">
           <div id="vehicle-section" class="hidden">
             <input type="text" id="vehicle-type" placeholder="نوع السيارة">
             <input type="text" id="vehicle-plate" placeholder="رقم اللوحة">
           </div>
         </div>
-        <button type="submit" id="auth-submit" class="btn-primary" style="margin-top: 5px;">متابعة</button>
+        <button type="submit" id="auth-submit" class="btn-primary">متابعة</button>
       </form>
-      <p id="auth-msg" class="hidden auth-msg"></p>
+      <p id="auth-msg" style="color:#ef4444; text-align:center; margin-top:10px; font-size:14px;"></p>
     </div>
   </div>
 
-  <div id="pending-screen" class="hidden center-screen">
-    <div class="card" style="max-width: 350px;">
-      <div style="font-size: 3.5rem; margin-bottom: 15px;">⏳</div>
+  <!-- 3. شاشة قيد المراجعة -->
+  <div id="pending-screen" class="hidden auth-screen">
+    <div class="auth-card" style="text-align: center;">
+      <div style="font-size: 50px; margin-bottom: 20px;">⏳</div>
       <h2>طلبك قيد المراجعة</h2>
-      <p style="color: #718096; margin: 0 0 20px 0;">سيتم التواصل معك من الإدارة</p>
-      <button onclick="handleLogout()" class="btn-secondary">🚪 خروج</button>
+      <p style="color: #64748b; margin: 10px 0 30px;">سيتم التواصل معك من قبل الإدارة للموافقة على حسابك</p>
+      <button onclick="handleLogout()" class="btn-primary" style="background: #f1f5f9; color: #1e293b;">خروج</button>
     </div>
   </div>
 
+  <!-- 4. لوحة تحكم المستخدم -->
   <div id="user-dashboard" class="hidden">
-    <div style="padding: 15px; max-width: 600px; margin: 0 auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <span id="dash-user-name" style="font-weight: bold; font-size: 1.3rem;"></span>
-        <button onclick="handleLogout()" style="background: #fff5f5; color: #e53e3e; padding: 8px 16px; border-radius: 20px; font-size: 14px;">خروج</button>
+    <div class="dashboard">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <h2 id="dash-user-name">المستخدم</h2>
+        <button onclick="handleLogout()" style="color:#ef4444; background:#fee2e2; padding:8px 15px; border-radius:10px;">خروج</button>
       </div>
       <div id="dash-content"></div>
     </div>
   </div>
 
-  <div id="blocked-screen" class="hidden center-screen">
-    <div class="card"><h1 style="color: #e53e3e;">🚫 محظور</h1><button onclick="handleLogout()" class="btn-secondary">خروج</button></div>
-  </div>
-
-  <div id="admin-login" class="hidden center-screen">
-    <div class="card" style="max-width: 340px;">
-      <button id="back-to-home" style="background: none; color: var(--primary); margin-bottom: 15px; float: left;">↩️</button>
-      <h2 style="margin-top: 10px;">دخول الإدارة 👮</h2>
-      <input type="text" id="admin-user" placeholder="المستخدم">
-      <input type="password" id="admin-pass" placeholder="كلمة المرور">
-      <button id="login-submit" class="btn-primary" style="background: #2d3748;">دخول</button>
-      <p id="login-error" class="hidden auth-msg error">بيانات خاطئة</p>
+  <!-- 5. شاشة محظور -->
+  <div id="blocked-screen" class="hidden auth-screen">
+    <div class="auth-card" style="text-align: center;">
+      <h1 style="color: #ef4444;">🚫 محظور</h1>
+      <p>يرجى التواصل مع الإدارة.</p>
+      <button onclick="handleLogout()" class="btn-primary" style="margin-top:20px;">خروج</button>
     </div>
   </div>
 
+  <!-- 6. دخول الإدارة -->
+  <div id="admin-login" class="hidden auth-screen">
+    <div class="auth-card">
+      <button id="back-to-home" style="background:none; margin-bottom:15px; float:left;">↩️</button>
+      <h2 style="margin-bottom: 20px; text-align: center;">دخول الإدارة</h2>
+      <input type="text" id="admin-user" placeholder="اسم المستخدم">
+      <input type="password" id="admin-pass" placeholder="كلمة المرور">
+      <button id="login-submit" class="btn-primary">دخول</button>
+      <p id="login-error" style="color: #ef4444; text-align: center; margin-top: 10px; display: none;">بيانات غير صحيحة</p>
+    </div>
+  </div>
+
+  <!-- 7. لوحة الإدارة -->
   <div id="admin-panel" class="hidden">
-    <div style="padding: 20px; max-width: 900px; margin: 0 auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>لوحة التحكم ⚙️</h2>
-        <button id="logout-admin" style="background: #fff5f5; color: #e53e3e; padding: 8px 16px; border-radius: 20px;">خروج</button>
+    <div style="padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h2>لوحة الإدارة</h2>
+        <button onclick="localStorage.removeItem('shira_admin_logged'); location.reload();" style="background: #fee2e2; color: #ef4444; padding: 8px 15px; border-radius: 10px;">خروج</button>
       </div>
-      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-        <div style="background: #fff; padding: 15px; border-radius: 15px; flex: 1; text-align: center;">👥 <strong id="stat-users">0</strong></div>
-        <div style="background: #fff; padding: 15px; border-radius: 15px; flex: 1; text-align: center;">⏳ <strong id="stat-pending">0</strong></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+        <div style="background: #fff; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+          <div style="font-size: 30px; font-weight: bold; color: #f59e0b;" id="stat-users">0</div>
+          <div style="color: #64748b; margin-top: 5px;">المستخدمين</div>
+        </div>
+        <div style="background: #fff; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+          <div style="font-size: 30px; font-weight: bold; color: #ef4444;" id="stat-pending">0</div>
+          <div style="color: #64748b; margin-top: 5px;">قيد المراجعة</div>
+        </div>
       </div>
-      <div style="overflow-x: auto; background: #fff; border-radius: 15px;">
+      <div style="overflow-x: auto;">
         <table class="admin-table">
           <thead><tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>الحالة</th><th>إجراءات</th></tr></thead>
           <tbody id="users-list"></tbody>
@@ -130,6 +197,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app.js"></script>
