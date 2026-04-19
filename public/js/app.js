@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية المصححة - جاهزة للرفع]
+// [النسخة النهائية الكاملة - إشعارات + تفعيل بمدة + إصلاحات شاملة]
 // ==========================================
 
 var CONFIG = {
@@ -133,7 +133,7 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة
+// 5. التحقق من الجلسة ✅ مع نظام الإشعارات
 // ==========================================
 function checkSession() {
   if (localStorage.getItem('shira_admin_logged') === 'true') {
@@ -154,6 +154,23 @@ function checkSession() {
     
     if (session) {
       app.currentUser = session.user;
+      
+      // 🔔 التحقق من الإشعارات غير المقروءة
+      client.from('notifications')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .then(function(notifRes) {
+          var notifications = notifRes.data;
+          if (notifications && notifications.length > 0) {
+            var latest = notifications[0];
+            alert('🔔 ' + latest.title + '\n\n' + latest.message);
+            // تحديد الإشعار كمقروء
+            client.from('notifications').update({ is_read: true }).eq('id', latest.id);
+          }
+        });
+      
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
     return Promise.resolve({ data: null });
@@ -164,6 +181,7 @@ function checkSession() {
       return;
     }
     
+    // ⏳ التحقق من انتهاء الصلاحية
     if (profile.subscription_expiry && profile.status === 'نشط') {
       var expiryDate = new Date(profile.subscription_expiry);
       if (new Date() > expiryDate) {
@@ -574,7 +592,7 @@ function showMsg(el, txt, type) {
 }
 
 // ==========================================
-// 10. لوحة الإدارة ✅ مصححة
+// 10. لوحة الإدارة ✅ محدثة بالكامل
 // ==========================================
 function handleAdminLogin() {
   var u = document.getElementById('admin-user').value.trim();
@@ -606,6 +624,7 @@ function loadStats() {
   }).catch(function(err) { console.error('Stats Error:', err); });
 }
 
+// ✅ نافذة اختيار المدة (شهر، شهرين، 3، 4، 5، 6، سنة)
 function showActivationModal(userId) {
   var modal = document.createElement('div');
   modal.id = 'activation-modal';
@@ -618,6 +637,7 @@ function showActivationModal(userId) {
         '<option value="2">شهرين</option>' +
         '<option value="3">3 أشهر</option>' +
         '<option value="4">4 أشهر</option>' +
+        '<option value="5">5 أشهر</option>' +
         '<option value="6">6 أشهر</option>' +
         '<option value="12">سنة كاملة</option>' +
       '</select>' +
@@ -629,23 +649,44 @@ function showActivationModal(userId) {
   document.body.appendChild(modal);
 }
 
+// ✅ تنفيذ التفعيل + إنشاء إشعار للمستخدم
 function confirmActivation(userId) {
   var months = parseInt(document.getElementById('activation-months').value);
   var expiryDate = new Date();
   expiryDate.setMonth(expiryDate.getMonth() + months);
   
   var client = window.supabaseClient;
+  
   client.from('profiles').update({ 
     status: 'نشط', 
     subscription_expiry: expiryDate.toISOString() 
   }).eq('id', userId).then(function(res) {
-    document.getElementById('activation-modal').remove();
-    if (res.error) alert('خطأ: ' + res.error.message);
-    else {
-      alert('✅ تم تفعيل الحساب لمدة ' + months + ' شهر/أشهر');
-      loadUsersTable();
-      loadStats();
+    if (res.error) {
+      alert('خطأ: ' + res.error.message);
+      return;
     }
+    
+    // جلب بيانات المستخدم لإنشاء الإشعار
+    client.from('profiles').select('name, role').eq('id', userId).single().then(function(profileRes) {
+      if (profileRes.error) return;
+      
+      var userName = profileRes.data.name;
+      var userRole = profileRes.data.role;
+      
+      // إنشاء إشعار في قاعدة البيانات
+      client.from('notifications').insert({
+        user_id: userId,
+        title: '✅ تم تفعيل حسابك بنجاح!',
+        message: 'مرحباً ' + userName + '،\n\nتم تفعيل حسابك كـ ' + userRole + '.\nالمدة: ' + months + ' شهر/أشهر\nتاريخ الانتهاء: ' + expiryDate.toLocaleDateString('ar-IQ') + '\n\nيمكنك الآن تسجيل الدخول واستخدام جميع الخدمات.',
+        is_read: false,
+        created_at: new Date().toISOString()
+      }).then(function() {
+        document.getElementById('activation-modal').remove();
+        alert('✅ تم تفعيل الحساب وإرسال إشعار للمستخدم.\nالمدة: ' + months + ' شهر/أشهر');
+        loadUsersTable();
+        loadStats();
+      });
+    });
   });
 }
 
@@ -772,7 +813,7 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
-// ✅ التصحيح النهائي هنا
+// ✅ مصحح نهائياً
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
@@ -781,7 +822,6 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  // ✅ التصحيح: إضافة data
   client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
@@ -807,5 +847,8 @@ function startApp() {
   setupEvents();
 }
 
+// دوال عامة
 window.updateUserStatus = changeStatus;
 window.deleteUser = deleteUser;
+window.showActivationModal = showActivationModal;
+window.confirmActivation = confirmActivation;
