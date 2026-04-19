@@ -1,5 +1,5 @@
 // ==========================================
-// شراع - التطبيق (نسخة التصميم الجديد)
+// شراع - التطبيق (التصميم الجديد)
 // ==========================================
 
 var CONFIG = {
@@ -30,7 +30,7 @@ function initSupabase() {
 }
 
 function saveLocation(lat, lng) {
-  localStorage.setItem('shira_user_location', JSON.stringify({ lat, lng, timestamp: Date.now() }));
+  localStorage.setItem('shira_user_location', JSON.stringify({ lat: lat, lng: lng, timestamp: Date.now() }));
 }
 
 function getCurrentLocation() {
@@ -98,7 +98,6 @@ function checkSession() {
       app.currentUser = session.user;
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-    // ✅ التصحيح هنا: إرجاع null بشكل صحيح
     return Promise.resolve({ data: null });
   }).then(function(profRes) {
     var profile = profRes.data;
@@ -175,11 +174,11 @@ async function handleAuth(e) {
       if (!name) { showMsg(msgEl, 'الاسم مطلوب'); return; }
       showMsg(msgEl, 'جاري الإنشاء...');
       
-      // ✅ التصحيح هنا: options: {  { ... } }
+      // ✅ التصحيح هنا: إضافة data
       var res = await client.auth.signUp({
         email: phone + '@shira.app',
         password: pass,
-        options: {  { phone: phone, name: name, role: currentRole } }
+        options: { data: { phone: phone, name: name, role: currentRole } }
       });
       if (res.error) throw res.error;
       
