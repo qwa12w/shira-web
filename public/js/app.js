@@ -1,5 +1,5 @@
 // ==========================================
-// شراع - تطبيق المنصة المتكاملة
+// شراع - التطبيق الكامل
 // ==========================================
 
 var CONFIG = {
@@ -25,7 +25,7 @@ function initSupabase() {
   }
   try {
     window.supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-    console.log('✅ تم الاتصال');
+    console.log('✅ Connected');
     return window.supabaseClient;
   } catch (e) { return null; }
 }
@@ -197,7 +197,7 @@ async function handleAuth(e) {
       var res = await client.auth.signUp({
         email: phone + '@shira.app',
         password: pass,
-        options: {  { phone: phone, name: name, role: currentRole } }
+        options: { data: { phone: phone, name: name, role: currentRole } }
       });
       if (res.error) throw res.error;
       
@@ -431,7 +431,7 @@ function showProfileEditor() {
     var client = window.supabaseClient; if(!client||!app.currentUser)return;
     var n = document.getElementById('edit-name').value.trim(); if(!n)return;
     // ✅ التصحيح الصحيح
-    client.auth.updateUser({  { name: n } }).then(function() { return client.from('profiles').update({name:n}).eq('id',app.currentUser.id); })
+    client.auth.updateUser({ data: { name: n } }).then(function() { return client.from('profiles').update({name:n}).eq('id',app.currentUser.id); })
       .then(function(){ alert('✅ تم الحفظ'); checkSession(); });
   };
 }
