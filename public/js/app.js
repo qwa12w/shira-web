@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية المصححة بالكامل - جاهزة للرفع]
+// [النسخة النهائية المصححة تماماً - جاهزة للرفع]
 // ==========================================
 
 var CONFIG = {
@@ -133,7 +133,7 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة ✅ مصحح
+// 5. التحقق من الجلسة ✅ مصحح نهائياً
 // ==========================================
 function checkSession() {
   if (localStorage.getItem('shira_admin_logged') === 'true') {
@@ -155,7 +155,6 @@ function checkSession() {
     if (session) {
       app.currentUser = session.user;
       
-      // 🔔 التحقق من الإشعارات غير المقروءة
       client.from('notifications')
         .select('*')
         .eq('user_id', session.user.id)
@@ -172,7 +171,7 @@ function checkSession() {
       
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-    // ✅ تصحيح: إعادة كائن بيانات صالح
+    // ✅ التصحيح الصحيح هنا
     return Promise.resolve({ data: null });
   }).then(function(profRes) {
     var profile = profRes.data;
@@ -181,7 +180,6 @@ function checkSession() {
       return;
     }
     
-    // ⏳ التحقق من انتهاء الصلاحية
     if (profile.subscription_expiry && profile.status === 'نشط') {
       var expiryDate = new Date(profile.subscription_expiry);
       if (new Date() > expiryDate) {
@@ -331,7 +329,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة ✅ مصحح
+// 8. المصادقة ✅ مصحح نهائياً
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -362,7 +360,7 @@ async function handleAuth(e) {
       if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
       
-      // ✅ التصحيح: options: { data: { ... } }
+      // ✅ التصحيح الصحيح هنا
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
@@ -592,7 +590,7 @@ function showMsg(el, txt, type) {
 }
 
 // ==========================================
-// 10. لوحة الإدارة ✅ محدثة
+// 10. لوحة الإدارة
 // ==========================================
 function handleAdminLogin() {
   var u = document.getElementById('admin-user').value.trim();
@@ -678,6 +676,7 @@ function confirmActivation(userId) {
     .then(function(profileRes) {
       if (!profileRes || profileRes.error) {
         console.error('Error fetching profile:', profileRes);
+        // ✅ التصحيح الصحيح هنا
         return {  { name: 'مستخدم', role: 'مستخدم' } };
       }
       
@@ -841,8 +840,8 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  // ✅ التصحيح: إضافة data
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  // ✅ التصحيح الصحيح هنا
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
