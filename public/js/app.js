@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [التصميم الاحترافي ثلاثي الأبعاد - مصحح 100%]
+// [تحديث: تفعيل بمدة صلاحية + بيانات إدارة جديدة + ثبات الصفحة]
 // ==========================================
 
 var CONFIG = {
@@ -111,9 +111,10 @@ function restoreScreen() {
   var savedRole = localStorage.getItem('shira_role');
   if (savedRole) app.currentRole = savedRole;
   
-  if (saved && saved !== 'main-app' && saved !== 'auth-screen') {
-    showScreen(saved);
-    if (saved === 'admin-panel' && savedTab) {
+  // ✅ إذا كانت المحفوظة هي لوحة الإدارة، ابقَ فيها
+  if (saved === 'admin-panel') {
+    showScreen('admin-panel');
+    if (savedTab) {
       document.querySelectorAll('.admin-nav-btn').forEach(function(b) { 
         b.classList.toggle('active', b.dataset.tab === savedTab); 
       });
@@ -122,15 +123,27 @@ function restoreScreen() {
         if (t.id === 'tab-' + savedTab) t.classList.remove('hidden');
       });
     }
+    return;
+  }
+  
+  if (saved && saved !== 'main-app' && saved !== 'auth-screen') {
+    showScreen(saved);
   } else {
     showScreen('main-app');
   }
 }
 
 // ==========================================
-// 5. التحقق من الجلسة
+// 5. التحقق من الجلسة ✅ محدث للتحقق من الصلاحية
 // ==========================================
 function checkSession() {
+  // ✅ 1. التحقق من دخول الإدارة أولاً (للثبات عند التحديث)
+  if (localStorage.getItem('shira_admin_logged') === 'true') {
+    showScreen('admin-panel');
+    loadStats();
+    return;
+  }
+
   var client = window.supabaseClient;
   if (!client) {
     showScreen('main-app');
@@ -143,35 +156,35 @@ function checkSession() {
     
     if (session) {
       app.currentUser = session.user;
-      
-      client.from('profiles').select('*').eq('id', session.user.id).single().then(function(profRes) {
-        if (profRes.error) {
-          console.error('خطأ في جلب الملف:', profRes.error);
-          showScreen('main-app');
-          return;
-        }
-        
-        var profile = profRes.data;
-        if (!profile) {
-          showScreen('main-app');
-          return;
-        }
-        
-        if (profile.status === 'محظور') {
-          showScreen('blocked-screen');
-        } else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') {
-          showScreen('pending-screen');
-        } else {
-          showUserDashboard(profile).then(function() {
-            showScreen('user-dashboard');
-          });
-        }
-      }).catch(function(e) {
-         console.error('Profile Error:', e);
-         showScreen('main-app');
-      });
-    } else {
+      return client.from('profiles').select('*').eq('id', session.user.id).single();
+    }
+    return Promise.resolve({ data: null });
+  }).then(function(profRes) {
+    var profile = profRes.data;
+    if (!profile) {
       showScreen('main-app');
+      return;
+    }
+    
+    // ✅ 2. التحقق من انتهاء الصلاحية
+    if (profile.subscription_expiry && profile.status === 'نشط') {
+      var expiryDate = new Date(profile.subscription_expiry);
+      if (new Date() > expiryDate) {
+        client.from('profiles').update({ status: 'منتهي الصلاحية' }).eq('id', profile.id);
+        alert('⚠️ انتهت صلاحية حسابك. يرجى التواصل مع الإدارة للتجديد.');
+        showScreen('main-app');
+        return;
+      }
+    }
+    
+    if (profile.status === 'محظور') showScreen('blocked-screen');
+    else if (profile.status === 'قيد المراجعة' && profile.role !== 'زبون') showScreen('pending-screen');
+    else if (profile.status === 'منتهي الصلاحية') showScreen('pending-screen');
+    else {
+      showUserDashboard(profile).then(function() {
+        var saved = localStorage.getItem('shira_screen');
+        showScreen(saved && saved !== 'main-app' && saved !== 'admin-panel' ? saved : 'user-dashboard');
+      });
     }
   }).catch(function(e) { 
     console.error('Session Error:', e); 
@@ -196,9 +209,6 @@ function setupRealtime() {
           if (tabUsers && !tabUsers.classList.contains('hidden')) loadUsersTable();
         }
       }
-      if (app.currentUser && p.new && p.new.id === app.currentUser.id) {
-        if (p.new.status === 'محظور') showScreen('blocked-screen');
-      }
     }).subscribe();
 }
 
@@ -221,16 +231,10 @@ function setupEvents() {
     if (el) el.onclick = fn; 
   }
   
-  bind('back-to-main', function() { 
-    localStorage.removeItem('shira_screen');
-    showScreen('main-app'); 
-  });
-  bind('back-to-home', function() { 
-    localStorage.removeItem('shira_screen');
-    showScreen('main-app'); 
-  });
+  bind('back-to-main', function() { showScreen('main-app'); });
+  bind('back-to-home', function() { showScreen('main-app'); });
   bind('logout-admin', function() { 
-    localStorage.removeItem('shira_screen');
+    localStorage.removeItem('shira_admin_logged');
     showScreen('main-app'); 
   });
   bind('logout-user', handleLogout);
@@ -333,53 +337,35 @@ async function handleAuth(e) {
   var name = nameEl ? nameEl.value.trim() : '';
   
   if (msgEl) msgEl.classList.add('hidden');
-  
-  if (!phone || !pass) {
-    showMsg(msgEl, 'يرجى إدخال الهاتف وكلمة المرور', 'error');
-    return;
-  }
-
-  if (pass.length < 6) {
-    showMsg(msgEl, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-    return;
-  }
+  if (!phone || !pass) { showMsg(msgEl, 'يرجى إدخال الهاتف وكلمة المرور', 'error'); return; }
+  if (pass.length < 6) { showMsg(msgEl, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error'); return; }
 
   var currentRole = app.currentRole || localStorage.getItem('shira_role') || 'زبون';
 
   try {
     if (app.authMode === 'register') {
-      if (!name) {
-        showMsg(msgEl, 'الاسم مطلوب', 'error');
-        return;
-      }
-      
+      if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
       
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: { data: { phone: phone, name: name, role: currentRole } }
+        options: {  { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) throw signUpResult.error;
       if (!signUpResult.data || !signUpResult.data.user) throw new Error('فشل إنشاء الحساب');
       
       var userId = signUpResult.data.user.id;
-      
       var loc = await getCurrentLocation();
       
       var profileData = {
-        id: userId, 
-        name: name, 
-        phone: phone, 
-        role: currentRole, 
+        id: userId, name: name, phone: phone, role: currentRole,
         status: currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة',
-        latitude: loc.lat,
-        longitude: loc.lng
+        latitude: loc.lat, longitude: loc.lng
       };
       
       var profileResult = await client.from('profiles').insert(profileData);
-      
       if (profileResult.error) throw profileResult.error;
       
       if (currentRole !== 'زبون') await uploadDocs(userId);
@@ -392,51 +378,30 @@ async function handleAuth(e) {
         if (currentRole === 'زبون') {
           app.currentUser = signUpResult.data.user;
           app.currentRole = currentRole;
-          
-          showUserDashboard({ 
-            name: name, 
-            phone: phone, 
-            role: currentRole, 
-            latitude: loc.lat, 
-            longitude: loc.lng 
-          }).then(function() {
-            showScreen('user-dashboard');
-            localStorage.setItem('shira_screen', 'user-dashboard');
-          });
-        } else {
-          showScreen('pending-screen');
-        }
+          showUserDashboard({ name: name, phone: phone, role: currentRole, latitude: loc.lat, longitude: loc.lng })
+            .then(function() { showScreen('user-dashboard'); localStorage.setItem('shira_screen', 'user-dashboard'); });
+        } else { showScreen('pending-screen'); }
       }, 1000);
       
     } else {
       showMsg(msgEl, 'جاري تسجيل الدخول...', 'success');
-      
-      var signInResult = await client.auth.signInWithPassword({ 
-        email: phone + '@shira.app', 
-        password: pass 
-      });
-      
+      var signInResult = await client.auth.signInWithPassword({ email: phone + '@shira.app', password: pass });
       if (signInResult.error) throw signInResult.error;
       
       app.currentUser = signInResult.data.user;
-      
       var profileResult = await client.from('profiles').select('*').eq('id', app.currentUser.id).single();
-      
       if (profileResult.error) throw profileResult.error;
       
       var profile = profileResult.data;
       if (!profile) throw new Error('الملف الشخصي غير موجود');
       
-      if (profile.status === 'محظور') {
-        showScreen('blocked-screen');
-      } else if (profile.status === 'قيد المراجعة') {
-        showScreen('pending-screen');
-      } else {
+      if (profile.status === 'محظور') showScreen('blocked-screen');
+      else if (profile.status === 'قيد المراجعة') showScreen('pending-screen');
+      else {
         await showUserDashboard(profile);
         showScreen('user-dashboard');
       }
     }
-    
   } catch (err) {
     console.error('❌ خطأ في المصادقة:', err);
     showMsg(msgEl, err.message || 'حدث خطأ، حاول مرة أخرى', 'error');
@@ -488,30 +453,24 @@ function uploadDocs(uid) {
 }
 
 // ==========================================
-// 9. لوحة المستخدم (تصميم 3D)
+// 9. لوحة المستخدم
 // ==========================================
 function showAuthScreen(role) {
   app.currentRole = role;
   var titleEl = document.getElementById('auth-role-title');
   if (titleEl) titleEl.textContent = 'تسجيل ' + role;
-  
   updateAuthForm();
   
   var sec = document.getElementById('documents-section');
   var veh = document.getElementById('vehicle-section');
   var bik = document.getElementById('bike-section');
   
-  if (role === 'زبون') {
-    if (sec) sec.classList.add('hidden');
-  } else {
+  if (role === 'زبون') { if (sec) sec.classList.add('hidden'); }
+  else {
     if (sec) sec.classList.remove('hidden');
-    if (role === 'سائق تكسي') { 
-      if (veh) veh.classList.remove('hidden'); if (bik) bik.classList.add('hidden'); 
-    } else if (role === 'ديلفري') { 
-      if (veh) veh.classList.add('hidden'); if (bik) bik.classList.remove('hidden'); 
-    } else { 
-      if (veh) veh.classList.add('hidden'); if (bik) bik.classList.add('hidden'); 
-    }
+    if (role === 'سائق تكسي') { if (veh) veh.classList.remove('hidden'); if (bik) bik.classList.add('hidden'); }
+    else if (role === 'ديلفري') { if (veh) veh.classList.add('hidden'); if (bik) bik.classList.remove('hidden'); }
+    else { if (veh) veh.classList.add('hidden'); if (bik) bik.classList.add('hidden'); }
   }
 }
 
@@ -519,11 +478,9 @@ function updateAuthForm() {
   var ng = document.getElementById('name-group');
   var sb = document.getElementById('auth-submit');
   if (app.authMode === 'register') { 
-    if (ng) ng.classList.remove('hidden'); 
-    if (sb) sb.textContent = 'إنشاء حساب'; 
+    if (ng) ng.classList.remove('hidden'); if (sb) sb.textContent = 'إنشاء حساب'; 
   } else { 
-    if (ng) ng.classList.add('hidden'); 
-    if (sb) sb.textContent = 'تسجيل الدخول'; 
+    if (ng) ng.classList.add('hidden'); if (sb) sb.textContent = 'تسجيل الدخول'; 
   }
 }
 
@@ -537,131 +494,74 @@ function showUserDashboard(p) {
     var c = document.getElementById('dash-content');
     if (c) {
       var initials = p.name ? p.name.charAt(0) : '?';
-      
       c.innerHTML = 
         '<div class="top-bar" style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:0 0 24px 24px;margin:-1rem -1rem 1rem -1rem;box-shadow:0 8px 32px rgba(102,126,234,0.4);">' +
           '<div style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;" onclick="showProfileEditor()">' +
             '<div style="width:42px;height:42px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.1rem;border:2px solid rgba(255,255,255,0.5);backdrop-filter:blur(10px);">' + initials + '</div>' +
-            '<div>' +
-              '<div style="color:#fff;font-weight:600;font-size:0.95rem;">' + p.name + '</div>' +
-              '<div style="color:rgba(255,255,255,0.8);font-size:0.75rem;">📍 ' + loc.lat.toFixed(3) + ', ' + loc.lng.toFixed(3) + '</div>' +
-            '</div>' +
+            '<div><div style="color:#fff;font-weight:600;font-size:0.95rem;">' + p.name + '</div>' +
+            '<div style="color:rgba(255,255,255,0.8);font-size:0.75rem;">📍 ' + loc.lat.toFixed(3) + ', ' + loc.lng.toFixed(3) + '</div></div>' +
           '</div>' +
           '<div style="display:flex;gap:0.5rem;">' +
-            '<button onclick="contactAdmin()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);transition:all 0.3s;" onmouseover="this.style.background=\'rgba(255,255,255,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.2)\'">📞</button>' +
-            '<button onclick="handleLogout()" style="background:rgba(255,80,80,0.3);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);transition:all 0.3s;" onmouseover="this.style.background=\'rgba(255,80,80,0.5)\'" onmouseout="this.style.background=\'rgba(255,80,80,0.3)\'">🚪</button>' +
+            '<button onclick="contactAdmin()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);">📞</button>' +
+            '<button onclick="handleLogout()" style="background:rgba(255,80,80,0.3);border:none;color:#fff;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;backdrop-filter:blur(10px);">🚪</button>' +
           '</div>' +
         '</div>' +
-        
-        '<div class="profile-mini-card" style="background:#fff;border-radius:20px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
+        '<div class="profile-mini-card" style="background:#fff;border-radius:20px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;">' +
             '<div style="display:flex;align-items:center;gap:1rem;">' +
-              '<div style="width:60px;height:60px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:bold;box-shadow:0 8px 20px rgba(102,126,234,0.35);">' + initials + '</div>' +
-              '<div>' +
-                '<h3 style="margin:0;font-size:1.15rem;color:#1a202c;">' + p.name + '</h3>' +
-                '<span style="display:inline-block;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;margin-top:0.3rem;font-weight:500;">👤 ' + p.role + '</span>' +
-              '</div>' +
+              '<div style="width:60px;height:60px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:bold;">' + initials + '</div>' +
+              '<div><h3 style="margin:0;font-size:1.15rem;">' + p.name + '</h3>' +
+              '<span style="display:inline-block;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;">👤 ' + p.role + '</span></div>' +
             '</div>' +
-            '<button onclick="showProfileEditor()" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;width:42px;height:42px;border-radius:14px;cursor:pointer;font-size:1.2rem;box-shadow:0 4px 15px rgba(102,126,234,0.35);transition:all 0.3s;transform:perspective(100px) rotateY(0deg);" onmouseover="this.style.transform=\'perspective(100px) rotateY(5deg) scale(1.05)\'" onmouseout="this.style.transform=\'perspective(100px) rotateY(0deg) scale(1)\'">✏️</button>' +
+            '<button onclick="showProfileEditor()" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;width:42px;height:42px;border-radius:14px;cursor:pointer;font-size:1.2rem;">✏️</button>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0;">' +
-            '<span style="font-size:1rem;">📱</span>' +
-            '<span style="color:#718096;font-size:0.95rem;direction:ltr;">' + p.phone + '</span>' +
+            '<span>📱</span><span style="color:#718096;direction:ltr;">' + p.phone + '</span>' +
           '</div>' +
         '</div>' +
-        
         '<div class="services-grid-3d" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.8rem;padding:0.5rem;margin-bottom:1rem;">' +
-          
-          '<button onclick="requestService(\'taxi\')" style="background:linear-gradient(145deg,#667eea 0%,#5a67d8 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #4c51bf, 0 6px 12px rgba(102,126,234,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #4c51bf, 0 12px 24px rgba(102,126,234,0.4)\'">' +
-            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
-            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🚗</div>' +
-            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب تكسي</div>' +
-          '</button>' +
-          
-          '<button onclick="requestService(\'delivery\')" style="background:linear-gradient(145deg,#f093fb 0%,#e056a0 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #c0448a, 0 6px 12px rgba(240,147,251,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #c0448a, 0 12px 24px rgba(240,147,251,0.4)\'">' +
-            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
-            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🏍️</div>' +
-            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">طلب ديلفري</div>' +
-          '</button>' +
-          
-          '<button onclick="requestService(\'shopping\')" style="background:linear-gradient(145deg,#4facfe 0%,#3a8fd9 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2d7bc0, 0 6px 12px rgba(79,172,254,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2d7bc0, 0 12px 24px rgba(79,172,254,0.4)\'">' +
-            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
-            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🛒</div>' +
-            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">تسوق</div>' +
-          '</button>' +
-          
-          '<button onclick="shareWithShira()" style="background:linear-gradient(145deg,#43e97b 0%,#38c96a 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4);transition:all 0.15s;transform:perspective(200px) rotateX(0deg) rotateY(0deg);position:relative;overflow:hidden;" onmousedown="this.style.transform=\'perspective(200px) rotateX(5deg) translateY(4px)\';this.style.boxShadow=\'0 4px 0 #2db85a, 0 6px 12px rgba(67,233,123,0.4)\'" onmouseup="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'" onmouseleave="this.style.transform=\'perspective(200px) rotateX(0deg) rotateY(0deg)\';this.style.boxShadow=\'0 8px 0 #2db85a, 0 12px 24px rgba(67,233,123,0.4)\'">' +
-            '<div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>' +
-            '<div style="font-size:2.2rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));">⛵</div>' +
-            '<div style="font-size:0.9rem;font-weight:700;letter-spacing:0.5px;">مشاركة شراع</div>' +
-          '</button>' +
+          '<button onclick="requestService(\'taxi\')" style="background:linear-gradient(145deg,#667eea 0%,#5a67d8 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #4c51bf;">' +
+            '<div style="font-size:2.2rem;">🚗</div><div style="font-weight:700;">طلب تكسي</div></button>' +
+          '<button onclick="requestService(\'delivery\')" style="background:linear-gradient(145deg,#f093fb 0%,#e056a0 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #c0448a;">' +
+            '<div style="font-size:2.2rem;">🏍️</div><div style="font-weight:700;">طلب ديلفري</div></button>' +
+          '<button onclick="requestService(\'shopping\')" style="background:linear-gradient(145deg,#4facfe 0%,#3a8fd9 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2d7bc0;">' +
+            '<div style="font-size:2.2rem;">🛒</div><div style="font-weight:700;">تسوق</div></button>' +
+          '<button onclick="shareWithShira()" style="background:linear-gradient(145deg,#43e97b 0%,#38c96a 100%);color:#fff;border:none;padding:1.2rem 0.8rem;border-radius:20px;cursor:pointer;box-shadow:0 8px 0 #2db85a;">' +
+            '<div style="font-size:2.2rem;">⛵</div><div style="font-weight:700;">مشاركة شراع</div></button>' +
         '</div>' +
-        
-        '<div class="map-section-3d" style="background:#fff;border-radius:20px;padding:1rem;margin-bottom:1rem;box-shadow:0 8px 24px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);">' +
-          '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">' +
-            '<span style="font-size:1.2rem;">📍</span>' +
-            '<span style="font-weight:600;color:#1a202c;font-size:0.95rem;">موقعك الحالي</span>' +
-          '</div>' +
-          '<div id="order-map" style="height:200px;background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%);border-radius:16px;overflow:hidden;border:2px solid #e2e8f0;"></div>' +
+        '<div class="map-section-3d" style="background:#fff;border-radius:20px;padding:1rem;margin-bottom:1rem;">' +
+          '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;"><span>📍</span><span style="font-weight:600;">موقعك الحالي</span></div>' +
+          '<div id="order-map" style="height:200px;background:#f7fafc;border-radius:16px;border:2px solid #e2e8f0;"></div>' +
           '<input type="hidden" id="order-lat" value="' + loc.lat + '">' +
           '<input type="hidden" id="order-lng" value="' + loc.lng + '">' +
-          '<button onclick="updateLocation()" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:0.8rem;border-radius:14px;cursor:pointer;font-size:0.9rem;font-weight:600;box-shadow:0 4px 12px rgba(102,126,234,0.3);transition:all 0.3s;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 16px rgba(102,126,234,0.4)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 4px 12px rgba(102,126,234,0.3)\'">🔄 تحديث الموقع</button>' +
+          '<button onclick="updateLocation()" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:0.8rem;border-radius:14px;cursor:pointer;font-weight:600;">🔄 تحديث الموقع</button>' +
         '</div>';
       
-      if (typeof L !== 'undefined') {
-        setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 200);
-      }
+      if (typeof L !== 'undefined') setTimeout(function() { initOrderMap(loc.lat, loc.lng); }, 200);
       
       window.requestService = function(type) {
-        var serviceName = type === 'taxi' ? 'تكسي' : type === 'delivery' ? 'ديلفري' : 'تسوق';
-        var icons = { taxi: '🚗', delivery: '🏍️', shopping: '🛒' };
-        if (confirm('هل تريد طلب خدمة ' + serviceName + ' ' + icons[type] + '؟')) {
-          createOrder(type);
-        }
+        if (confirm('هل تريد طلب الخدمة؟')) createOrder(type);
       };
-      
-      window.shareWithShira = function() {
-        alert('شكراً لمشاركتك مع شراع! ⛵\nسيتم التواصل معك قريباً');
-      };
-      
-      window.contactAdmin = function() {
-        alert('📞 للتواصل مع الإدارة:\n\n📧 support@shira.app\n📱 07700000000');
-      };
-      
+      window.shareWithShira = function() { alert('شكراً لمشاركتك مع شراع! ⛵'); };
+      window.contactAdmin = function() { alert('📞 للتواصل:\nsupport@shira.app'); };
       window.updateLocation = function() {
         getCurrentLocation().then(function(loc) {
           document.getElementById('order-lat').value = loc.lat;
           document.getElementById('order-lng').value = loc.lng;
-          if (typeof L !== 'undefined') {
-            var mapEl = document.getElementById('order-map');
-            if (mapEl) { mapEl.innerHTML = ''; initOrderMap(loc.lat, loc.lng); }
-          }
-          alert('✅ تم تحديث موقعك بنجاح');
+          if (typeof L !== 'undefined') { var m = document.getElementById('order-map'); if(m){m.innerHTML='';initOrderMap(loc.lat,loc.lng);} }
+          alert('✅ تم تحديث الموقع');
         });
       };
-      
       window.createOrder = function(serviceType) {
         var client = window.supabaseClient;
         if (!client || !app.currentUser) return;
-        
-        var orderData = {
-          user_id: app.currentUser.id,
-          service_type: serviceType,
+        client.from('orders').insert({
+          user_id: app.currentUser.id, service_type: serviceType,
           latitude: parseFloat(document.getElementById('order-lat').value),
           longitude: parseFloat(document.getElementById('order-lng').value),
-          status: 'pending',
-          created_at: new Date().toISOString()
-        };
-        
-        client.from('orders').insert(orderData).then(function(res) {
-          if (res.error) {
-            alert('حدث خطأ في إرسال الطلب: ' + res.error.message);
-          } else {
-            alert('✅ تم إرسال طلبك بنجاح!\nسيتم التواصل معك قريباً');
-          }
-        }).catch(function(err) {
-          console.error('Error:', err);
-          alert('حدث خطأ في إرسال الطلب');
+          status: 'pending', created_at: new Date().toISOString()
+        }).then(function(res) {
+          alert(res.error ? 'حدث خطأ: ' + res.error.message : '✅ تم إرسال الطلب بنجاح!');
         });
       };
     }
@@ -676,37 +576,81 @@ function showMsg(el, txt, type) {
 }
 
 // ==========================================
-// 10. لوحة الإدارة
+// 10. لوحة الإدارة ✅ محدثة بالكامل
 // ==========================================
 function handleAdminLogin() {
-  var u = document.getElementById('admin-user') ? document.getElementById('admin-user').value : '';
-  var p = document.getElementById('admin-pass') ? document.getElementById('admin-pass').value : '';
+  var u = document.getElementById('admin-user').value.trim();
+  var p = document.getElementById('admin-pass').value;
   var err = document.getElementById('login-error');
-  if (u === 'admin' && p === '1234') {
+  
+  // ✅ تغيير بيانات الدخول
+  if (u === 'علي' && p === 'جنده') {
+    localStorage.setItem('shira_admin_logged', 'true');
     if (err) err.classList.add('hidden');
     showScreen('admin-panel');
+    localStorage.setItem('shira_screen', 'admin-panel');
     loadStats();
-  } else { if (err) err.classList.remove('hidden'); }
+  } else {
+    if (err) err.classList.remove('hidden');
+  }
 }
 
 function loadStats() {
   var c = window.supabaseClient; 
   if (!c) return;
-  
   Promise.all([
     c.from('profiles').select('*', { count: 'exact', head: true }),
     c.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'قيد المراجعة')
   ]).then(function(results) {
-    if (results[0].error) {
-      console.error('خطأ في الإحصائيات:', results[0].error);
-      return;
-    }
     var su = document.getElementById('stat-users');
     var sp = document.getElementById('stat-pending');
     if (su) su.textContent = results[0].count || 0;
     if (sp) sp.textContent = results[1].count || 0;
-  }).catch(function(err) {
-    console.error('خطأ في جلب الإحصائيات:', err);
+  }).catch(function(err) { console.error('Stats Error:', err); });
+}
+
+// ✅ عرض نافذة اختيار مدة التفعيل
+function showActivationModal(userId) {
+  var modal = document.createElement('div');
+  modal.id = 'activation-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = 
+    '<div style="background:#fff;padding:2rem;border-radius:20px;width:90%;max-width:350px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);">' +
+      '<h3 style="margin:0 0 1rem 0;">⏳ مدة تفعيل الحساب</h3>' +
+      '<select id="activation-months" style="width:100%;padding:0.8rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:12px;font-size:1rem;">' +
+        '<option value="1">شهر واحد</option>' +
+        '<option value="2">شهرين</option>' +
+        '<option value="3">3 أشهر</option>' +
+        '<option value="4">4 أشهر</option>' +
+        '<option value="6">6 أشهر</option>' +
+        '<option value="12">سنة كاملة</option>' +
+      '</select>' +
+      '<div style="display:flex;gap:0.5rem;">' +
+        '<button onclick="confirmActivation(\'' + userId + '\')" style="flex:1;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:0.8rem;border-radius:12px;cursor:pointer;font-weight:600;">✅ تأكيد التفعيل</button>' +
+        '<button onclick="document.getElementById(\'activation-modal\').remove()" style="flex:1;background:#edf2f7;color:#4a5568;border:none;padding:0.8rem;border-radius:12px;cursor:pointer;font-weight:600;">إلغاء</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+// ✅ تنفيذ التفعيل مع حساب تاريخ الانتهاء
+function confirmActivation(userId) {
+  var months = parseInt(document.getElementById('activation-months').value);
+  var expiryDate = new Date();
+  expiryDate.setMonth(expiryDate.getMonth() + months);
+  
+  var client = window.supabaseClient;
+  client.from('profiles').update({ 
+    status: 'نشط', 
+    subscription_expiry: expiryDate.toISOString() 
+  }).eq('id', userId).then(function(res) {
+    document.getElementById('activation-modal').remove();
+    if (res.error) alert('خطأ: ' + res.error.message);
+    else {
+      alert('✅ تم تفعيل الحساب لمدة ' + months + ' شهر/أشهر');
+      loadUsersTable();
+      loadStats();
+    }
   });
 }
 
@@ -715,36 +659,42 @@ function loadUsersTable() {
   if (!c) return;
   
   c.from('profiles').select('*').order('created_at', { ascending: false }).then(function(res) {
-    if (res.error) {
-      console.error('خطأ في جلب المستخدمين:', res.error);
-      return;
-    }
+    if (res.error) { console.error('Users Error:', res.error); return; }
     var users = res.data;
     var tbody = document.getElementById('users-list');
     if (!tbody) return;
     tbody.innerHTML = '';
+    
     if (users) {
       users.forEach(function(u) {
         var tr = document.createElement('tr');
         var actions = '';
-        if (u.status !== 'نشط') actions += '<button class="btn-action" data-act="activate" data-id="' + u.id + '">تفعيل</button>';
-        if (u.status !== 'محظور') actions += '<button class="btn-action btn-delete" data-act="block" data-id="' + u.id + '">حظر</button>';
-        actions += '<button class="btn-action" data-act="delete" data-id="' + u.id + '">حذف</button>';
-        tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + new Date(u.created_at).toLocaleDateString('ar-IQ') + '</td><td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td><td>' + actions + '</td>';
+        
+        // ✅ زر التفعيل يفتح نافذة المدة
+        if (u.status === 'قيد المراجعة' || u.status === 'منتهي الصلاحية') {
+          actions += '<button class="btn-action" onclick="showActivationModal(\'' + u.id + '\')">⏳ تفعيل</button>';
+        }
+        if (u.status === 'نشط') {
+          actions += '<button class="btn-action btn-delete" onclick="changeStatus(\'' + u.id + '\', \'محظور\')">🚫 حظر</button>';
+        }
+        if (u.status === 'محظور') {
+          actions += '<button class="btn-action" onclick="changeStatus(\'' + u.id + '\', \'نشط\')">✅ تفعيل</button>';
+        }
+        actions += '<button class="btn-action" onclick="deleteUser(\'' + u.id + '\')">🗑️ حذف</button>';
+        
+        var expiryText = u.subscription_expiry ? 'ينتهي: ' + new Date(u.subscription_expiry).toLocaleDateString('ar-IQ') : '-';
+        
+        tr.innerHTML = 
+          '<td>' + u.name + '</td>' +
+          '<td>' + u.phone + '</td>' +
+          '<td>' + u.role + '</td>' +
+          '<td style="font-size:0.8rem;color:#64748b;">' + expiryText + '</td>' +
+          '<td style="color:' + getStatusColor(u.status) + '">' + u.status + '</td>' +
+          '<td>' + actions + '</td>';
         tbody.appendChild(tr);
       });
     }
-    tbody.onclick = function(e) {
-      var btn = e.target.closest('button[data-act]');
-      if (!btn) return;
-      var id = btn.dataset.id, act = btn.dataset.act;
-      if (act === 'activate') changeStatus(id, 'نشط');
-      else if (act === 'block') changeStatus(id, 'محظور');
-      else if (act === 'delete') deleteUser(id);
-    };
-  }).catch(function(err) {
-    console.error('خطأ في جلب المستخدمين:', err);
-  });
+  }).catch(function(err) { console.error('Load Users Error:', err); });
 }
 
 function changeStatus(id, st) {
@@ -768,7 +718,7 @@ function deleteUser(id) {
 }
 
 function getStatusColor(s) { 
-  return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : 'red'; 
+  return s === 'نشط' ? 'green' : s === 'قيد المراجعة' ? 'orange' : s === 'محظور' ? 'red' : '#64748b'; 
 }
 
 function handleLogout() {
@@ -782,7 +732,7 @@ function handleLogout() {
 }
 
 // ==========================================
-// 11. دوال الخريطة
+// 11. دوال الخريطة وتعديل الملف
 // ==========================================
 function initOrderMap(lat, lng) {
   var mapEl = document.getElementById('order-map');
@@ -804,9 +754,6 @@ function initOrderMap(lat, lng) {
   setTimeout(function() { map.invalidateSize(); }, 300);
 }
 
-// ==========================================
-// 12. تعديل الملف الشخصي ✅ مصحح نهائياً
-// ==========================================
 function showProfileEditor() {
   var c = document.getElementById('dash-content');
   if (!c || !app.currentUser) return;
@@ -814,44 +761,32 @@ function showProfileEditor() {
   var phone = app.currentUser.user_metadata ? app.currentUser.user_metadata.phone || '' : '';
   
   c.innerHTML = 
-    '<div style="background:#fff;border-radius:24px;padding:1.5rem;margin:1rem;box-shadow:0 12px 32px rgba(0,0,0,0.08);border:1px solid rgba(0,0,0,0.04);">' +
-      '<div style="text-align:center;margin-bottom:1.5rem;">' +
-        '<div style="width:70px;height:70px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:20px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.8rem;font-weight:bold;box-shadow:0 8px 20px rgba(102,126,234,0.35);">' + (name ? name.charAt(0) : '?') + '</div>' +
-        '<h2 style="margin:0;color:#1a202c;font-size:1.2rem;">✏️ تعديل الملف الشخصي</h2>' +
-      '</div>' +
-      '<div style="margin-bottom:1rem;">' +
-        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">الاسم</label>' +
-        '<input type="text" id="edit-name" value="' + name + '" style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;box-sizing:border-box;transition:border-color 0.3s;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
-      '</div>' +
-      '<div style="margin-bottom:1rem;">' +
-        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">الهاتف</label>' +
-        '<input type="tel" value="' + phone + '" disabled style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;background:#f7fafc;color:#a0aec0;box-sizing:border-box;">' +
-      '</div>' +
-      '<div style="margin-bottom:1.5rem;">' +
-        '<label style="display:block;margin-bottom:0.4rem;color:#4a5568;font-size:0.85rem;font-weight:500;">كلمة مرور جديدة (اختياري)</label>' +
-        '<input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء على الحالية" style="width:100%;padding:0.85rem 1rem;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;box-sizing:border-box;transition:border-color 0.3s;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
-      '</div>' +
+    '<div style="background:#fff;border-radius:24px;padding:1.5rem;margin:1rem;box-shadow:0 12px 32px rgba(0,0,0,0.08);">' +
+      '<h2 style="margin:0 0 1.5rem 0;text-align:center;">✏️ تعديل الملف</h2>' +
+      '<div style="margin-bottom:1rem;"><label style="display:block;margin-bottom:0.4rem;color:#4a5568;">الاسم</label>' +
+      '<input type="text" id="edit-name" value="' + name + '" style="width:100%;padding:0.85rem;border:2px solid #e2e8f0;border-radius:14px;"></div>' +
+      '<div style="margin-bottom:1rem;"><label style="display:block;margin-bottom:0.4rem;color:#4a5568;">الهاتف</label>' +
+      '<input type="tel" value="' + phone + '" disabled style="width:100%;padding:0.85rem;border:2px solid #e2e8f0;border-radius:14px;background:#f7fafc;"></div>' +
+      '<div style="margin-bottom:1.5rem;"><label style="display:block;margin-bottom:0.4rem;color:#4a5568;">كلمة مرور جديدة (اختياري)</label>' +
+      '<input type="password" id="edit-password" placeholder="اتركه فارغاً للإبقاء" style="width:100%;padding:0.85rem;border:2px solid #e2e8f0;border-radius:14px;"></div>' +
       '<div style="display:flex;gap:0.75rem;">' +
-        '<button id="save-profile" style="flex:1;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-size:0.95rem;font-weight:600;box-shadow:0 4px 15px rgba(102,126,234,0.35);">💾 حفظ</button>' +
-        '<button id="cancel-edit" style="flex:1;background:#edf2f7;color:#4a5568;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-size:0.95rem;font-weight:600;">إلغاء</button>' +
-      '</div>' +
-      '<p id="profile-msg" class="auth-msg hidden" style="margin-top:1rem;text-align:center;"></p>' +
-    '</div>';
+      '<button id="save-profile" style="flex:1;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-weight:600;">💾 حفظ</button>' +
+      '<button id="cancel-edit" style="flex:1;background:#edf2f7;color:#4a5568;padding:0.9rem;border:none;border-radius:14px;cursor:pointer;font-weight:600;">إلغاء</button>' +
+      '</div><p id="profile-msg" class="auth-msg hidden" style="margin-top:1rem;text-align:center;"></p></div>';
   
   document.getElementById('save-profile').onclick = saveProfile;
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
-// ✅ التصحيح النهائي هنا - إضافة data
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
-  var name = document.getElementById('edit-name') ? document.getElementById('edit-name').value.trim() : '';
-  var password = document.getElementById('edit-password') ? document.getElementById('edit-password').value : '';
+  var name = document.getElementById('edit-name').value.trim();
+  var password = document.getElementById('edit-password').value;
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
@@ -865,7 +800,7 @@ function saveProfile() {
 }
 
 // ==========================================
-// 13. التشغيل
+// 12. التشغيل
 // ==========================================
 function startApp() {
   if (app.ready) return;
