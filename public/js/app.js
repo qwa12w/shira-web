@@ -68,7 +68,8 @@ else bootstrap();
 
 function showScreen(id) {
   document.querySelectorAll('body > div').forEach(function(el) {
-    if (el.id !== 'about-modal' && el.id !== 'contact-modal') el.classList.add('hidden');
+    // ✅ التعديل المطلوب فقط: إضافة about-page و contact-page
+    if (el.id !== 'about-modal' && el.id !== 'contact-modal' && el.id !== 'about-page' && el.id !== 'contact-page') el.classList.add('hidden');
   });
   var target = document.getElementById(id);
   if (target) {

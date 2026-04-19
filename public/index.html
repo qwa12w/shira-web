@@ -70,9 +70,9 @@
   <!-- 1. الشاشة الرئيسية -->
   <div id="main-app">
     <header class="header">
-      <button class="header-btn">عن شراع</button>
+      <button class="header-btn" onclick="showScreen('about-page')">عن شراع</button>
       <div id="logo-container" class="logo">⛵ شراع</div>
-      <button class="header-btn">تواصل معنا</button>
+      <button class="header-btn" onclick="showScreen('contact-page')">تواصل معنا</button>
     </header>
 
     <main>
@@ -193,6 +193,98 @@
           <thead><tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>الحالة</th><th>إجراءات</th></tr></thead>
           <tbody id="users-list"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. صفحة عن شراع -->
+  <div id="about-page" class="hidden" style="min-height:100vh;background:#f8fafc;">
+    <div style="background:#fff;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+      <div style="display:flex;align-items:center;gap:15px;">
+        <button onclick="showScreen('main-app')" style="background:none;border:none;font-size:24px;color:#64748b;">↩️</button>
+        <h2 style="margin:0;color:#d97706;">عن شراع</h2>
+      </div>
+    </div>
+    
+    <div style="padding:30px 20px;text-align:center;max-width:600px;margin:0 auto;">
+      <div style="font-size:80px;margin-bottom:20px;">⛵</div>
+      <h1 style="color:#1e293b;margin-bottom:15px;font-size:28px;">شراع</h1>
+      <p style="color:#64748b;line-height:1.8;margin-bottom:30px;font-size:16px;">
+        تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية.<br>
+        نجمع لك كل خدماتك في مكان واحد لراحتك وسهولة استخدامك.
+      </p>
+      
+      <div style="background:#fff;border-radius:20px;padding:25px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,0.05);text-align:right;">
+        <h3 style="margin:0 0 15px 0;color:#1e293b;font-size:18px;">🎯 رؤيتنا</h3>
+        <p style="color:#64748b;line-height:1.7;margin:0;font-size:14px;">
+          أن نكون المنصة الرائدة في تقديم حلول النقل والتوصيل الذكية في المنطقة.
+        </p>
+      </div>
+      
+      <div style="background:#fff;border-radius:20px;padding:25px;margin-bottom:30px;box-shadow:0 4px 15px rgba(0,0,0,0.05);text-align:right;">
+        <h3 style="margin:0 0 15px 0;color:#1e293b;font-size:18px;">💡 خدماتنا</h3>
+        <ul style="color:#64748b;line-height:2;margin:0;padding-right:20px;font-size:14px;list-style:none;">
+          <li>🚗 خدمة سائق تكسي فوري</li>
+          <li>🏍️ خدمة ديلفري سريع</li>
+          <li>🏪 منصة متكاملة للتجار والبائعين</li>
+          <li>👤 تجربة مستخدم سهلة وآمنة</li>
+        </ul>
+      </div>
+      
+      <button onclick="showScreen('contact-page')" style="width:100%;padding:16px;background:#1e293b;color:#fff;border-radius:12px;font-size:16px;font-weight:bold;border:none;cursor:pointer;">
+        📞 تواصل معنا
+      </button>
+    </div>
+  </div>
+
+  <!-- 9. صفحة تواصل معنا -->
+  <div id="contact-page" class="hidden" style="min-height:100vh;background:#f8fafc;">
+    <div style="background:#fff;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+      <div style="display:flex;align-items:center;gap:15px;">
+        <button onclick="showScreen('about-page')" style="background:none;border:none;font-size:24px;color:#64748b;">↩️</button>
+        <h2 style="margin:0;color:#1e293b;">تواصل معنا</h2>
+      </div>
+    </div>
+    
+    <div style="padding:30px 20px;max-width:600px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:40px;">
+        <div style="font-size:60px;margin-bottom:15px;">📱</div>
+        <h3 style="color:#1e293b;margin-bottom:10px;font-size:22px;">نحن هنا لمساعدتك</h3>
+        <p style="color:#64748b;font-size:15px;">تواصل معنا عبر أي من القنوات التالية</p>
+      </div>
+      
+      <!-- الاتصال الهاتفي -->
+      <a href="tel:07722507019" style="display:block;background:#fff;border-radius:20px;padding:25px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,0.05);text-decoration:none;color:inherit;">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <div style="width:60px;height:60px;background:#fef3c7;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;">📞</div>
+          <div style="flex:1;">
+            <h4 style="margin:0 0 5px 0;color:#1e293b;font-size:17px;">اتصل بنا</h4>
+            <p style="margin:0;color:#059669;font-size:18px;font-weight:bold;direction:ltr;text-align:right;">07722507019</p>
+          </div>
+          <div style="width:40px;height:40px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">→</div>
+        </div>
+      </a>
+      
+      <!-- واتساب -->
+      <a href="https://api.whatsapp.com/message/4X6QQ4JWMINUN1?autoload=1&app_absent=0" target="_blank" style="display:block;background:#fff;border-radius:20px;padding:25px;margin-bottom:30px;box-shadow:0 4px 15px rgba(0,0,0,0.05);text-decoration:none;color:inherit;">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <div style="width:60px;height:60px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;">💬</div>
+          <div style="flex:1;">
+            <h4 style="margin:0 0 5px 0;color:#1e293b;font-size:17px;">واتساب</h4>
+            <p style="margin:0;color:#64748b;font-size:14px;">تواصل معنا عبر الواتساب</p>
+          </div>
+          <div style="width:40px;height:40px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">→</div>
+        </div>
+      </a>
+      
+      <!-- معلومات إضافية -->
+      <div style="background:#fff;border-radius:20px;padding:25px;box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+        <h4 style="margin:0 0 20px 0;color:#1e293b;font-size:17px;text-align:center;">📍 معلومات التواصل</h4>
+        <div style="color:#64748b;line-height:2;font-size:14px;text-align:center;">
+          <div style="margin-bottom:10px;">⏰ نعمل على مدار الساعة</div>
+          <div style="margin-bottom:10px;">✉️ support@shira.app</div>
+          <div>🌐 www.shira.app</div>
+        </div>
       </div>
     </div>
   </div>
