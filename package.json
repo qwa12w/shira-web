@@ -1,0 +1,7 @@
+{
+  "name": "shira-platform",
+  "version": "2.0.0",
+  "description": "تطبيق شراع - منصة الخدمات المتكاملة",
+  "scripts": { "start": "echo 'App running on Vercel'" },
+  "engines": { "node": "18.x" }
+}
