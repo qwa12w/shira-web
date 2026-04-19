@@ -70,10 +70,12 @@
   <!-- 1. الشاشة الرئيسية -->
   <div id="main-app">
     <header class="header">
-      <!-- ✅ تم إضافة onclick هنا -->
+      <!-- ✅ زر عن شراع يفتح الصفحة المستقلة -->
       <button class="header-btn" onclick="showScreen('about-page')">عن شراع</button>
+      
       <div id="logo-container" class="logo">⛵ شراع</div>
-      <!-- ✅ تم إضافة onclick هنا -->
+      
+      <!-- ✅ زر تواصل معنا يفتح الصفحة المستقلة -->
       <button class="header-btn" onclick="showScreen('contact-page')">تواصل معنا</button>
     </header>
 
@@ -101,6 +103,8 @@
           <div class="card-title">بائع</div>
         </button>
       </div>
+      
+      <!-- ✅ تم حذف قسم "تواصل معنا" الثابت من هنا تماماً ليكون نظيفاً -->
     </main>
   </div>
 
@@ -199,7 +203,7 @@
     </div>
   </div>
 
-  <!-- 8. صفحة عن شراع (معلومات التطبيق فقط - بدون تواصل) -->
+  <!-- 8. صفحة عن شراع (معلومات التطبيق فقط) -->
   <div id="about-page" class="hidden" style="min-height:100vh;background:#f8fafc;">
     <div style="background:#fff;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
       <div style="display:flex;align-items:center;gap:15px;">
@@ -235,7 +239,7 @@
     </div>
   </div>
 
-  <!-- 9. صفحة تواصل معنا (معلومات التواصل فقط - بدون عن شراع) -->
+  <!-- 9. صفحة تواصل معنا (معلومات التواصل فقط) -->
   <div id="contact-page" class="hidden" style="min-height:100vh;background:#f8fafc;">
     <div style="background:#fff;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
       <div style="display:flex;align-items:center;gap:15px;">
