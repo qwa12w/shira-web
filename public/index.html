@@ -1,71 +1,178 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شراع v2.1-CLEAN</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-:root{--p:#f59e0b;--d:#1e293b;--g:#64748b;--b:#f8fafc}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:var(--b);color:var(--d)}
-.hidden{display:none!important}
-button{cursor:pointer;border:none;font-family:inherit}
-.hdr{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
-.hdr-btn{background:#f1f5f9;color:var(--g);padding:8px 15px;border-radius:20px;font-size:14px}
-.logo{font-size:28px;font-weight:bold;color:#d97706;cursor:pointer}
-.hero{text-align:center;padding:30px 20px 20px}
-.hero h1{font-size:36px;font-weight:800;margin-bottom:10px}
-.hero h1 span{color:var(--p)}
-.hero p{color:var(--g);font-size:16px;max-width:400px;margin:0 auto}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px;max-width:500px;margin:0 auto}
-.card{background:#fff;border-radius:24px;padding:30px 15px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.04);cursor:pointer;min-height:180px}
-.card:active{transform:scale(0.96)}
-.ic{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:15px}
-.ttl{font-size:20px;font-weight:700}
-.i1{background:#eff6ff}.i2{background:#fef3c7}.i3{background:#f0fdf4}.i4{background:#faf5ff}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>شراع | Shira App</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root { --primary: #f59e0b; --text-dark: #1e293b; --text-gray: #64748b; --bg: #f8fafc; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text-dark); overflow-x: hidden; }
+    .hidden { display: none !important; }
+    button { cursor: pointer; border: none; font-family: inherit; }
+    
+    /* الهيدر */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .header-btn { background: #f1f5f9; color: var(--text-gray); padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+    /* الشعار (زر الإدارة) */
+    .logo { font-size: 28px; font-weight: bold; color: #d97706; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.2s; }
+    .logo:hover { transform: scale(1.05); }
+    
+    /* المحتوى الرئيسي */
+    .hero-section { text-align: center; padding: 30px 20px 20px; }
+    .hero-title { font-size: 36px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; }
+    .hero-title span { color: var(--primary); }
+    .hero-subtitle { color: var(--text-gray); font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+    
+    /* شبكة الخدمات */
+    .services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 500px; margin: 0 auto; }
+    .service-card { background: #fff; border-radius: 24px; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: transform 0.2s; cursor: pointer; min-height: 180px; text-align: center; }
+    .service-card:active { transform: scale(0.96); }
+    .card-icon { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 15px; }
+    .card-title { font-size: 20px; font-weight: 700; color: var(--text-dark); }
+    .icon-taxi { background: #eff6ff; } .icon-customer { background: #fef3c7; }
+    .icon-delivery { background: #f0fdf4; } .icon-store { background: #faf5ff; }
+    
+    /* شاشات الدخول */
+    .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg); }
+    .auth-card { background: #fff; padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    input { width: 100%; padding: 14px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 15px; }
+    input:focus { outline: none; border-color: var(--primary); }
+    .btn-primary { width: 100%; padding: 15px; background: var(--text-dark); color: #fff; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+    .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 5px; border-radius: 10px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; font-weight: 600; color: var(--text-gray); background: transparent; }
+    .auth-tab.active { background: #fff; color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    
+    /* لوحة التحكم */
+    .dashboard { padding: 20px; max-width: 600px; margin: 0 auto; }
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 10px; overflow: hidden; }
+    .admin-table th { background: #f8fafc; padding: 12px; text-align: right; font-size: 13px; color: var(--text-gray); }
+    .admin-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  </style>
 </head>
 <body>
-<!-- ✅ نسخة نظيفة نهائية - لا يوجد فوتر -->
-<div id="main-app">
-<header class="hdr">
-<button class="hdr-btn" onclick="showScreen('about')">عن شراع</button>
-<div id="logo-container" class="logo">⛵ شراع</div>
-<button class="hdr-btn" onclick="showScreen('contact')">تواصل معنا</button>
-</header>
-<main>
-<div class="hero">
-<h1>كل خدماتك في <br><span>تطبيق واحد</span></h1>
-<p>تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
-</div>
-<div class="grid">
-<button class="card" data-role="سائق تكسي"><div class="ic i1">🚗</div><div class="ttl">سائق تكسي</div></button>
-<button class="card" data-role="زبون"><div class="ic i2">👤</div><div class="ttl">زبون</div></button>
-<button class="card" data-role="ديلفري"><div class="ic i3">🏍️</div><div class="ttl">ديلفري</div></button>
-<button class="card" data-role="متجر"><div class="ic i4">🏪</div><div class="ttl">بائع</div></button>
-</div>
-</main>
-</div>
-<div id="about" class="hidden" style="min-height:100vh;background:#f8fafc;padding:20px;">
-<button onclick="showScreen('main-app')" style="background:none;border:none;font-size:24px;color:#64748b;margin-bottom:20px;">↩️</button>
-<h2 style="color:#d97706;text-align:center;margin-bottom:30px;">عن شراع</h2>
-<p style="text-align:center;color:#64748b;line-height:1.8;">تطبيقك الشامل للنقل الذكي والتوصيل السريع</p>
-</div>
-<div id="contact" class="hidden" style="min-height:100vh;background:#f8fafc;padding:20px;">
-<button onclick="showScreen('main-app')" style="background:none;border:none;font-size:24px;color:#64748b;margin-bottom:20px;">↩️</button>
-<h2 style="color:#1e293b;text-align:center;margin-bottom:30px;">تواصل معنا</h2>
-<a href="tel:07722507019" style="display:block;background:#fff;border-radius:20px;padding:25px;margin-bottom:20px;text-decoration:none;text-align:center;">
-<div style="font-size:28px;margin-bottom:10px;">📞</div>
-<div style="color:#059669;font-size:18px;font-weight:bold;">07722507019</div>
-</a>
-<a href="https://api.whatsapp.com/message/4X6QQ4JWMINUN1?autoload=1&app_absent=0" target="_blank" style="display:block;background:#fff;border-radius:20px;padding:25px;text-decoration:none;text-align:center;">
-<div style="font-size:28px;margin-bottom:10px;">💬</div>
-<div style="color:#64748b;">واتساب</div>
-</a>
-</div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js"></script>
+
+  <!-- 1. الشاشة الرئيسية -->
+  <div id="main-app">
+    <header class="header">
+      <!-- ✅ ترتيب الأزرار: تواصل معنا يمين، عن شراع يسار (في وضع RTL) -->
+      <button class="header-btn" onclick="showScreen('contact-page')">تواصل معنا</button>
+      
+      <!-- ✅ شعار شراع هو زر الدخول للإدارة -->
+      <div id="logo-container" class="logo" title="دخول الإدارة">⛵ شراع</div>
+      
+      <button class="header-btn" onclick="showScreen('about-page')">عن شراع</button>
+    </header>
+
+    <main>
+      <div class="hero-section">
+        <h1 class="hero-title">كل خدماتك في <br><span>تطبيق واحد</span></h1>
+        <p class="hero-subtitle">تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
+      </div>
+
+      <div class="services-grid">
+        <button class="service-card" data-role="سائق تكسي"><div class="card-icon icon-taxi">🚗</div><div class="card-title">سائق تكسي</div></button>
+        <button class="service-card" data-role="زبون"><div class="card-icon icon-customer">👤</div><div class="card-title">زبون</div></button>
+        <button class="service-card" data-role="ديلفري"><div class="card-icon icon-delivery">🏍️</div><div class="card-title">ديلفري</div></button>
+        <button class="service-card" data-role="متجر"><div class="card-icon icon-store">🏪</div><div class="card-title">بائع</div></button>
+      </div>
+    </main>
+  </div>
+
+  <!-- 2. شاشة التسجيل -->
+  <div id="auth-screen" class="hidden auth-screen">
+    <div class="auth-card">
+      <button id="back-to-main" style="background:none; color:#64748b; margin-bottom:15px; float:left;">↩️ رجوع</button>
+      <h2 id="auth-role-title" style="margin-bottom: 20px; text-align: center;">مرحباً بك</h2>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login">دخول</button>
+        <button class="auth-tab" data-mode="register">حساب جديد</button>
+      </div>
+      <form id="auth-form">
+        <input type="tel" id="auth-phone" placeholder="رقم الهاتف" required>
+        <div id="name-group" class="hidden"><input type="text" id="auth-name" placeholder="الاسم الكامل"></div>
+        <input type="password" id="auth-password" placeholder="كلمة المرور" required>
+        <button type="submit" id="auth-submit" class="btn-primary">متابعة</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. شاشة قيد المراجعة -->
+  <div id="pending-screen" class="hidden auth-screen">
+    <div class="auth-card" style="text-align: center;">
+      <div style="font-size: 50px; margin-bottom: 20px;">⏳</div>
+      <h2>طلبك قيد المراجعة</h2>
+      <button onclick="handleLogout()" class="btn-primary" style="background: #f1f5f9; color: #1e293b;">خروج</button>
+    </div>
+  </div>
+
+  <!-- 4. لوحة المستخدم -->
+  <div id="user-dashboard" class="hidden">
+    <div class="dashboard">
+      <h2 id="dash-user-name">المستخدم</h2>
+      <button onclick="handleLogout()" style="color:#ef4444; background:#fee2e2; padding:8px 15px; border-radius:10px;">خروج</button>
+    </div>
+  </div>
+
+  <!-- 5. شاشة محظور -->
+  <div id="blocked-screen" class="hidden auth-screen">
+    <div class="auth-card" style="text-align: center;">
+      <h1 style="color: #ef4444;">🚫 محظور</h1>
+      <button onclick="handleLogout()" class="btn-primary">خروج</button>
+    </div>
+  </div>
+
+  <!-- 6. دخول الإدارة -->
+  <div id="admin-login" class="hidden auth-screen">
+    <div class="auth-card">
+      <h2 style="margin-bottom: 20px; text-align: center;">دخول الإدارة</h2>
+      <input type="text" id="admin-user" placeholder="اسم المستخدم">
+      <input type="password" id="admin-pass" placeholder="كلمة المرور">
+      <button id="login-submit" class="btn-primary">دخول</button>
+      <p id="login-error" style="color: #ef4444; text-align: center; margin-top: 10px; display: none;">بيانات غير صحيحة</p>
+    </div>
+  </div>
+
+  <!-- 7. لوحة الإدارة -->
+  <div id="admin-panel" class="hidden">
+    <div style="padding: 20px;">
+      <h2>لوحة الإدارة</h2>
+      <button onclick="localStorage.removeItem('shira_admin_logged'); location.reload();" style="background: #fee2e2; color: #ef4444; padding: 8px 15px; border-radius: 10px; float:left;">خروج</button>
+      <div style="margin-top:20px;">
+        <div>المستخدمين: <strong id="stat-users">0</strong></div>
+        <div>قيد المراجعة: <strong id="stat-pending">0</strong></div>
+      </div>
+      <table class="admin-table">
+        <thead><tr><th>الاسم</th><th>الهاتف</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody id="users-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. صفحة عن شراع -->
+  <div id="about-page" class="hidden" style="min-height:100vh;background:#f8fafc;padding:20px;">
+    <button onclick="showScreen('main-app')" style="background:none;border:none;font-size:24px;color:#64748b;margin-bottom:20px;">↩️</button>
+    <h2 style="color:#d97706;text-align:center;margin-bottom:30px;">عن شراع</h2>
+    <p style="text-align:center;color:#64748b;line-height:1.8;">تطبيقك الشامل للنقل الذكي والتوصيل السريع</p>
+  </div>
+
+  <!-- 9. صفحة تواصل معنا -->
+  <div id="contact-page" class="hidden" style="min-height:100vh;background:#f8fafc;padding:20px;">
+    <button onclick="showScreen('main-app')" style="background:none;border:none;font-size:24px;color:#64748b;margin-bottom:20px;">↩️</button>
+    <h2 style="color:#1e293b;text-align:center;margin-bottom:30px;">تواصل معنا</h2>
+    <a href="tel:07722507019" style="display:block;background:#fff;border-radius:20px;padding:25px;margin-bottom:20px;text-decoration:none;text-align:center;">
+      <div style="font-size:28px;margin-bottom:10px;">📞</div>
+      <div style="color:#059669;font-size:18px;font-weight:bold;">07722507019</div>
+    </a>
+    <a href="https://api.whatsapp.com/message/4X6QQ4JWMINUN1?autoload=1&app_absent=0" target="_blank" style="display:block;background:#fff;border-radius:20px;padding:25px;text-decoration:none;text-align:center;">
+      <div style="font-size:28px;margin-bottom:10px;">💬</div>
+      <div style="color:#64748b;">واتساب</div>
+    </a>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

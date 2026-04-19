@@ -1,5 +1,7 @@
-cat > public/js/app.js << 'EOF'
-// شراع - التطبيق
+// ==========================================
+// شراع - التطبيق (النسخة النهائية المصححة)
+// ==========================================
+
 var CONFIG = {
   SUPABASE_URL: "https://qioiiidrwqvwzkveoxnm.supabase.co",
   SUPABASE_KEY: "sb_publishable_yLhyYMSCXttp1e_q_PAovA_zz1xgYDM",
@@ -36,8 +38,10 @@ function bootstrap() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrap);
 else bootstrap();
 
+// دالة التنقل بين الشاشات
 function showScreen(id) {
   document.querySelectorAll('body > div').forEach(function(el) {
+    // نستثني المودالات والشاشات الثابتة
     if (el.id !== 'about-modal' && el.id !== 'contact-modal') el.classList.add('hidden');
   });
   var target = document.getElementById(id);
@@ -52,7 +56,7 @@ function startApp() {
   if (app.ready) return;
   app.ready = true;
   
-  // ربط أزرار الخدمات
+  // 1. ربط أزرار الخدمات (تكسي، زبون، ديلفري، بائع)
   document.querySelectorAll('.service-card').forEach(function(card) {
     card.onclick = function() {
       app.currentRole = card.dataset.role;
@@ -62,7 +66,7 @@ function startApp() {
     };
   });
   
-  // ربط شعار الإدارة
+  // 2. ربط شعار الإدارة (شراع)
   var logo = document.getElementById('logo-container');
   if (logo) {
     logo.onclick = function() {
@@ -70,7 +74,7 @@ function startApp() {
     };
   }
   
-  // ربط أزرار التسجيل
+  // 3. ربط أزرار التسجيل (دخول / حساب جديد)
   document.querySelectorAll('.auth-tab').forEach(function(tab) {
     tab.onclick = function() {
       document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -80,19 +84,19 @@ function startApp() {
     };
   });
   
-  // نموذج التسجيل
+  // 4. نموذج التسجيل
   var form = document.getElementById('auth-form');
-  if (form) {
-    form.onsubmit = handleAuth;
-  }
+  if (form) form.onsubmit = handleAuth;
   
-  // زر الرجوع
+  // 5. زر الرجوع
   var backBtn = document.getElementById('back-to-main');
-  if (backBtn) {
-    backBtn.onclick = function() { showScreen('main-app'); };
-  }
+  if (backBtn) backBtn.onclick = function() { showScreen('main-app'); };
   
-  console.log('✅ App Started');
+  // 6. زر دخول الإدارة
+  var loginBtn = document.getElementById('login-submit');
+  if (loginBtn) loginBtn.onclick = handleAdminLogin;
+
+  console.log('✅ App Started & Buttons Active');
 }
 
 function showAuthScreen(role) {
@@ -116,20 +120,19 @@ function updateAuthForm() {
 async function handleAuth(e) {
   e.preventDefault();
   var client = window.supabaseClient;
-  if (!client) { alert('جاري الاتصال...'); return; }
+  if (!client) { alert('جاري الاتصال بقاعدة البيانات...'); return; }
   
   var phone = document.getElementById('auth-phone').value.trim();
   var pass = document.getElementById('auth-password').value;
   var name = document.getElementById('auth-name').value.trim();
-  var msgEl = document.getElementById('auth-msg');
   
-  if (!phone || !pass) { alert('أدخل الهاتف وكلمة المرور'); return; }
+  if (!phone || !pass) { alert('يرجى إدخال رقم الهاتف وكلمة المرور'); return; }
   
   var currentRole = app.currentRole || 'زبون';
   
   try {
     if (app.authMode === 'register') {
-      if (!name) { alert('الاسم مطلوب'); return; }
+      if (!name) { alert('يرجى إدخال الاسم'); return; }
       
       var res = await client.auth.signUp({
         email: phone + '@shira.app',
@@ -145,7 +148,7 @@ async function handleAuth(e) {
         status: currentRole === 'زبون' ? 'نشط' : 'قيد المراجعة'
       });
       
-      alert('✅ تم إنشاء الحساب');
+      alert('✅ تم إنشاء الحساب بنجاح');
       if (currentRole === 'زبون') {
         app.currentUser = res.data.user;
         showScreen('user-dashboard');
@@ -171,7 +174,7 @@ async function handleAuth(e) {
       else showScreen('user-dashboard');
     }
   } catch (err) {
-    alert('خطأ: ' + err.message);
+    alert('❌ خطأ: ' + err.message);
   }
 }
 
@@ -214,7 +217,7 @@ function loadStats() {
 }
 
 function showActivationModal(userId) {
-  var months = prompt("عدد الأشهر:", "1");
+  var months = prompt("عدد الأشهر للتفعيل:", "1");
   if (!months) return;
   
   var client = window.supabaseClient;
@@ -227,7 +230,7 @@ function showActivationModal(userId) {
   }).eq('id', userId).then(function(res) {
     if (res.error) alert('خطأ: ' + res.error.message);
     else {
-      alert('✅ تم التفعيل');
+      alert('✅ تم التفعيل لمدة ' + months + ' أشهر');
       loadStats();
     }
   });
@@ -249,7 +252,7 @@ function loadUsersTable() {
         var actions = '';
         
         if (u.status === 'قيد المراجعة') {
-          actions = '<button onclick="showActivationModal(\'' + u.id + '\')" style="background:#fef3c7;color:#d97706;padding:5px 10px;border-radius:6px;">⏳ تفعيل</button>';
+          actions = '<button onclick="showActivationModal(\'' + u.id + '\')" style="background:#fef3c7;color:#d97706;padding:5px 10px;border-radius:6px;border:none;cursor:pointer;">⏳ تفعيل</button>';
         }
         
         tr.innerHTML = '<td>' + u.name + '</td><td>' + u.phone + '</td><td>' + u.role + '</td><td>' + u.status + '</td><td>' + actions + '</td>';
@@ -259,13 +262,8 @@ function loadUsersTable() {
   });
 }
 
-// ربط أزرار الإدارة
-var loginBtn = document.getElementById('login-submit');
-if (loginBtn) {
-  loginBtn.onclick = handleAdminLogin;
-}
-
+// جعل الدوال متاحة عالمياً
+window.showScreen = showScreen;
+window.handleLogout = handleLogout;
 window.showActivationModal = showActivationModal;
 window.loadUsersTable = loadUsersTable;
-window.handleLogout = handleLogout;
-EOF
