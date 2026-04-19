@@ -3,262 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيق شراع</title>
-    <link rel="stylesheet" href="css/style.css">
-    
-    <!-- Leaflet CSS للخرائط -->
+    <title>تطبيق شراع | Shira App</title>
+    <!-- Leaflet CSS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- مكتبة Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* تنسيقات أساسية لإخفاء وإظهار الشاشات */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f7fafc; color: #333; }
+        .hidden { display: none !important; }
+        
+        /* تنسيق الحاويات */
+        .center-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        
+        /* تنسيق الأزرار والحقول */
+        button { cursor: pointer; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        
+        /* تنسيق البطاقات */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 400px;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- 1. شاشة الصيانة -->
-    <div id="maintenance-screen" class="hidden">
-        <h1>⛵ التطبيق تحت الصيانة</h1>
-        <p>نعمل على تحديثات هامة، سنعود قريباً.</p>
+    <!-- 1. الشاشة الرئيسية (Main App) -->
+    <div id="main-app">
+        <div class="center-screen">
+            <h1>مرحباً بك في شراع ⛵</h1>
+            <p>اختر نوع الحساب للمتابعة</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 90%; max-width: 400px; margin-top: 20px;">
+                <button class="service-card" data-role="زبون" style="padding: 20px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 10px;">👤 زبون</button>
+                <button class="service-card" data-role="سائق تكسي" style="padding: 20px; font-size: 16px; background: #f6ad55; color: white; border: none; border-radius: 10px;">🚗 سائق تكسي</button>
+                <button class="service-card" data-role="ديلفري" style="padding: 20px; font-size: 16px; background: #fc8181; color: white; border: none; border-radius: 10px;">🏍️ ديلفري</button>
+                <button class="service-card" data-role="متجر" style="padding: 20px; font-size: 16px; background: #68d391; color: white; border: none; border-radius: 10px;">🏪 متجر</button>
+            </div>
+            <button id="logo-container" style="margin-top: 30px; background: none; border: none; color: #718096; font-size: 14px;">دخول الإدارة 👮‍️</button>
+        </div>
     </div>
 
-    <!-- 2. الواجهة الرئيسية -->
-    <div id="main-app" class="hidden">
-        <header class="header">
-            <button id="btn-about" class="nav-btn small">عن شراع</button>
-            <div id="logo-container" class="logo">
-                <span>شراع</span>
-                <span class="sailboat-icon">⛵</span>
-            </div>
-            <button id="btn-contact" class="nav-btn small">تواصل معنا</button>
-        </header>
-
-        <main class="main-content">
-            <div class="hero-section">
-                <h1 class="main-title">كل خدماتك في<br><span class="highlight">تطبيق واحد</span></h1>
-                <p class="subtitle">تطبيقك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية</p>
-            </div>
-
-            <div class="services-grid top-row">
-                <div class="service-card customer-card" data-role="زبون">
-                    <div class="icon-circle"><span class="icon">👤</span></div>
-                    <h3>زبون</h3>
-                </div>
-                <div class="service-card taxi-card" data-role="سائق تكسي">
-                    <div class="icon-circle"><span class="icon">🚗</span></div>
-                    <h3>سائق تكسي</h3>
-                </div>
-            </div>
-
-            <div class="services-grid bottom-row">
-                <div class="service-card seller-card" data-role="بائع">
-                    <div class="icon-circle"><span class="icon">🏪</span></div>
-                    <h3>بائع</h3>
-                </div>
-                <div class="service-card delivery-card" data-role="ديلفري">
-                    <div class="icon-circle"><span class="icon">🏍️</span></div>
-                    <h3>ديلفري</h3>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- 3. شاشة التسجيل والدخول -->
-    <div id="auth-screen" class="hidden">
-        <div class="auth-container">
-            <button class="btn-back" id="back-to-main">← عودة</button>
-            <div class="auth-header">
-                <h2 id="auth-role-title">تسجيل الدخول</h2>
-                <p id="auth-role-subtitle">أدخل بياناتك للوصول إلى لوحة التحكم</p>
-            </div>
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-mode="login">دخول</button>
-                <button class="auth-tab" data-mode="register">حساب جديد</button>
+    <!-- 2. شاشة تسجيل الدخول (Auth Screen) -->
+    <div id="auth-screen" class="hidden center-screen">
+        <div class="card">
+            <button id="back-to-main" style="background: none; border: none; color: #667eea; margin-bottom: 10px; float: left;">↩️ عودة</button>
+            <h2 id="auth-role-title">تسجيل الدخول</h2>
+            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                <button class="auth-tab" data-mode="login" style="flex: 1; padding: 5px;">دخول</button>
+                <button class="auth-tab" data-mode="register" style="flex: 1; padding: 5px;">إنشاء حساب</button>
             </div>
             <form id="auth-form">
-                <div class="form-group hidden" id="name-group">
-                    <input type="text" id="auth-name" placeholder="الاسم الكامل">
-                </div>
-                <div class="form-group">
-                    <input type="tel" id="auth-phone" placeholder="رقم الهاتف" required>
-                </div>
-                <div class="form-group">
-                    <input type="password" id="auth-password" placeholder="كلمة المرور" required>
-                </div>
+                <input type="tel" id="auth-phone" placeholder="رقم الهاتف" required>
+                <div id="name-group" class="hidden"><input type="text" id="auth-name" placeholder="الاسم"></div>
+                <input type="password" id="auth-password" placeholder="كلمة المرور" required>
                 
-                <!-- حقول الوثائق (تظهر فقط للسائقين والديلفري والباعة) -->
-                <div id="documents-section" class="hidden">
-                    <h3 style="margin: 1rem 0; color: #0f172a;">الوثائق المطلوبة 📄</h3>
-                    
-                    <div class="form-group">
-                        <label>صورة رخصة القيادة</label>
-                        <input type="file" id="doc-license" accept="image/*">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>صورة شخصية</label>
-                        <input type="file" id="doc-personal" accept="image/*">
-                    </div>
-
+                <!-- قسم الوثائق (يظهر فقط للسائقين والمتاجر) -->
+                <div id="documents-section" class="hidden" style="text-align: right; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <h4>📂 الوثائق المطلوبة</h4>
+                    <label>🆔 صورة الرخصة/الهوية:</label>
+                    <input type="file" id="doc-license">
+                    <label>👤 صورة شخصية:</label>
+                    <input type="file" id="doc-personal">
                     <div id="vehicle-section" class="hidden">
-                        <div class="form-group">
-                            <label>صورة السيارة</label>
-                            <input type="file" id="doc-vehicle" accept="image/*">
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="vehicle-type" placeholder="نوع السيارة">
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="vehicle-color" placeholder="لون السيارة">
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="vehicle-plate" placeholder="رقم اللوحة">
-                        </div>
-                    </div>
-
-                    <div id="bike-section" class="hidden">
-                        <div class="form-group">
-                            <label>صورة الدراجة</label>
-                            <input type="file" id="doc-bike" accept="image/*">
-                        </div>
-                        <div class="form-group">
-                            <label>هل الدراجة مسجلة؟</label>
-                            <select id="bike-registered">
-                                <option value="true">نعم - مسجلة</option>
-                                <option value="false">لا - غير مسجلة</option>
-                            </select>
-                        </div>
+                        <input type="text" id="vehicle-type" placeholder="نوع السيارة">
+                        <input type="text" id="vehicle-plate" placeholder="رقم اللوحة">
                     </div>
                 </div>
 
-                <button type="submit" id="auth-submit" class="btn-primary">تسجيل الدخول</button>
+                <button type="submit" id="auth-submit" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">دخول</button>
             </form>
-            <p class="auth-msg hidden" id="auth-msg"></p>
+            <p id="auth-msg" class="hidden" style="color: red; margin-top: 10px;"></p>
         </div>
     </div>
 
-    <!-- 4. لوحة تحكم المستخدم -->
-    <div id="user-dashboard" class="hidden">
-        <header class="user-header">
-            <div class="user-info">
-                <h3 id="dash-user-name">المستخدم</h3>
-                <span class="role-badge" id="dash-user-role">زبون</span>
-            </div>
-            <button id="logout-user" class="btn-logout">خروج</button>
-        </header>
-        
-        <main class="user-content">
-            <div id="dash-content">
-                <!-- المحتوى الديناميكي -->
-            </div>
-        </main>
-    </div>
-
-    <!-- 5. شاشة انتظار الموافقة -->
-    <div id="pending-screen" class="hidden">
-        <div class="pending-container">
-            <div class="pending-icon">⏳</div>
+    <!-- 3. شاشة قيد المراجعة (Pending Screen) ✅ تم التحديث -->
+    <div id="pending-screen" class="hidden center-screen">
+        <div class="card" style="max-width: 350px;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
             <h2>طلبك قيد المراجعة</h2>
-            <p>سيتم التواصل معك من قبل الإدارة للموافقة على حسابك</p>
-            <p style="margin-top:1rem;color:#64748b;font-size:0.9rem;">يمكنك إغلاق هذه الصفحة والعودة لاحقاً</p>
-            <button class="btn-primary" onclick="location.reload()" style="margin-top:1rem;">تحديث الحالة</button>
+            <p style="color: #718096; margin-bottom: 20px;">سيتم التواصل معك من قبل الإدارة للموافقة على حسابك</p>
+            
+            <button onclick="checkPendingStatus()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px;">
+                🔄 تحديث الحالة
+            </button>
+            
+            <button onclick="handleLogout()" style="width: 100%; padding: 10px; background: #edf2f7; color: #4a5568; border: none; border-radius: 8px;">
+                🚪 تسجيل الخروج
+            </button>
+            
+            <p id="pending-status-msg" style="margin-top: 10px; font-size: 0.9rem; font-weight: bold;"></p>
         </div>
     </div>
 
-    <!-- 6. شاشة دخول الإدارة -->
-    <div id="admin-login" class="hidden">
-        <div class="login-box">
-            <h2>🔐 دخول الإدارة</h2>
+    <!-- 4. شاشة المستخدم (User Dashboard) -->
+    <div id="user-dashboard" class="hidden">
+        <div style="padding: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <span id="dash-user-name" style="font-weight: bold; font-size: 1.2rem;">المستخدم</span>
+                <button onclick="handleLogout()" style="background: #fc8181; color: white; border: none; padding: 5px 10px; border-radius: 5px;">خروج</button>
+            </div>
+            <div id="dash-content">
+                <!-- سيتم ملء هذا القسم بواسطة JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. شاشة محظور (Blocked Screen) -->
+    <div id="blocked-screen" class="hidden center-screen">
+        <div class="card">
+            <h1 style="color: #fc8181;">حسابك محظور 🚫</h1>
+            <p>يرجى التواصل مع الإدارة لحل المشكلة.</p>
+        </div>
+    </div>
+
+    <!-- 6. شاشة دخول الإدارة (Admin Login) -->
+    <div id="admin-login" class="hidden center-screen">
+        <div class="card">
+            <button id="back-to-home" style="background: none; border: none; color: #667eea; margin-bottom: 10px; float: left;">↩️</button>
+            <h2>دخول الإدارة 👮‍♂️</h2>
             <input type="text" id="admin-user" placeholder="اسم المستخدم">
             <input type="password" id="admin-pass" placeholder="كلمة المرور">
-            <button id="login-submit" class="btn-primary">دخول</button>
-            <p class="error-msg hidden" id="login-error">بيانات خاطئة</p>
-            <button class="btn-back" id="back-to-home">عودة</button>
+            <button id="login-submit" style="width: 100%; padding: 10px; background: #2d3748; color: white; border: none; border-radius: 8px;">دخول</button>
+            <p id="login-error" class="hidden" style="color: red; margin-top: 5px;">بيانات غير صحيحة</p>
         </div>
     </div>
 
-    <!-- 7. لوحة تحكم الإدارة -->
+    <!-- 7. لوحة الإدارة (Admin Panel) -->
     <div id="admin-panel" class="hidden">
-        <aside class="admin-sidebar">
-            <div class="admin-logo">شراع - الإدارة</div>
-            <nav>
-                <button class="admin-nav-btn active" data-tab="dashboard">الرئيسية 📊</button>
-                <button class="admin-nav-btn" data-tab="users">المستخدمين 👥</button>
-                <button class="admin-nav-btn" data-tab="orders">الطلبات 📦</button>
-                <button class="admin-nav-btn" data-tab="settings">الإعدادات ⚙️</button>
-            </nav>
-            <button id="logout-admin" class="logout-btn">تسجيل خروج</button>
-        </aside>
-        <main class="admin-content">
-            <section id="tab-dashboard" class="admin-tab active">
-                <h2>ملخص التطبيق</h2>
-                <div class="stats-grid">
-                    <div class="stat-card blue"><h3>المستخدمين</h3><span id="stat-users">0</span></div>
-                    <div class="stat-card yellow"><h3>بانتظار الموافقة</h3><span id="stat-pending">0</span></div>
-                    <div class="stat-card green"><h3>الطلبات النشطة</h3><span id="stat-orders">0</span></div>
-                </div>
-            </section>
-            <section id="tab-users" class="admin-tab hidden">
-                <h2>إدارة المستخدمين</h2>
-                <div class="table-container">
-                    <table id="users-table">
-                        <thead>
-                            <tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>التسجيل</th><th>الحالة</th><th>إجراء</th></tr>
-                        </thead>
-                        <tbody id="users-list"></tbody>
-                    </table>
-                </div>
-            </section>
-            <section id="tab-orders" class="admin-tab hidden">
-                <h2>إدارة الطلبات</h2>
-                <div class="table-container">
-                    <table id="orders-table">
-                        <thead>
-                            <tr><th>العميل</th><th>الخدمة</th><th>الموقع</th><th>الحالة</th><th>الوقت</th><th>إجراء</th></tr>
-                        </thead>
-                        <tbody id="orders-list"></tbody>
-                    </table>
-                </div>
-            </section>
-            <section id="tab-settings" class="admin-tab hidden">
-                <h2>إعدادات النظام</h2>
-                <div class="setting-card">
-                    <div class="setting-info">
-                        <h3>وضع الصيانة 🛠️</h3>
-                        <p>إخفاء التطبيق عن الزوار</p>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="maintenance-toggle">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- 8. نافذة منبثقة -->
-    <div class="modal-overlay hidden" id="about-modal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h2>عن تطبيق شراع ⛵</h2>
-            <p>تطبيق شراع هو حلك الشامل للنقل الذكي، التوصيل السريع، والتجارة الإلكترونية في مكان واحد.</p>
+        <div style="padding: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>لوحة التحكم ⚙️</h2>
+                <button id="logout-admin" style="background: #e53e3e; color: white; border: none; padding: 5px 10px; border-radius: 5px;">خروج</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">المستخدمين: <span id="stat-users">0</span></div>
+                <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">قيد الانتظار: <span id="stat-pending">0</span></div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: #f7fafc; text-align: right;">
+                            <th style="padding: 10px;">الاسم</th>
+                            <th style="padding: 10px;">الهاتف</th>
+                            <th style="padding: 10px;">الدور</th>
+                            <th style="padding: 10px;">الحالة</th>
+                            <th style="padding: 10px;">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list">
+                        <!-- Users injected here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- 9. نافذة تواصل معنا -->
-    <div class="modal-overlay hidden" id="contact-modal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h2>تواصل معنا 📞</h2>
-            <p style="margin:1rem 0;">للدعم الفني أو الاستفسارات:</p>
-            <p style="font-weight:600;color:var(--primary);">support@shira.app</p>
-            <p style="margin-top:1rem;font-size:0.9rem;color:var(--text-light);">فريق شراع جاهز لخدمتك 24/7</p>
+    <!-- Modals -->
+    <div id="about-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 300px;">
+            <h3>عن شراع</h3>
+            <p>منصة متكاملة للخدمات...</p>
+            <button class="close-modal">إغلاق</button>
         </div>
     </div>
 
-    <!-- Leaflet JS للخرائط -->
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- ملفات JavaScript -->
-    <script src="js/database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

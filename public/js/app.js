@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [النسخة النهائية المصححة تماماً - جاهزة للرفع]
+// [النسخة النهائية الكاملة - مع جميع التحسينات]
 // ==========================================
 
 var CONFIG = {
@@ -120,7 +120,6 @@ function restoreScreen() {
   }
 }
 
-// ✅ التصحيح: إرجاع كائن صحيح
 function checkSession() {
   if (localStorage.getItem('shira_admin_logged') === 'true') {
     showScreen('admin-panel');
@@ -157,7 +156,6 @@ function checkSession() {
       
       return client.from('profiles').select('*').eq('id', session.user.id).single();
     }
-    // ✅ التصحيح الصحيح: إرجاع كائن data
     return Promise.resolve({ data: null });
   }).then(function(profRes) {
     var profile = profRes.data;
@@ -308,7 +306,6 @@ function setupEvents() {
   }
 }
 
-// ✅ التصحيح: options: { data: { ... } }
 async function handleAuth(e) {
   e.preventDefault();
   
@@ -341,7 +338,7 @@ async function handleAuth(e) {
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: { data: { phone: phone, name: name, role: currentRole } }
+        options: {  { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) throw signUpResult.error;
@@ -617,7 +614,6 @@ function showActivationModal(userId) {
   document.body.appendChild(modal);
 }
 
-// ✅ التصحيح: إرجاع كائن صحيح
 function confirmActivation(userId) {
   var months = parseInt(document.getElementById('activation-months').value);
   var expiryDate = new Date();
@@ -643,27 +639,26 @@ function confirmActivation(userId) {
       return client.from('profiles')
         .select('name, role, phone')
         .eq('id', userId)
-        .single();
-    })
-    .then(function(profileRes) {
-      if (!profileRes || profileRes.error) {
-        console.error('Error fetching profile:', profileRes);
-        // ✅ التصحيح الصحيح: إرجاع كائن data
-        return { data: { name: 'مستخدم', role: 'مستخدم' } };
-      }
-      
-      var userName = profileRes.data.name;
-      var userRole = profileRes.data.role;
-      
-      return client.from('notifications')
-        .insert({
-          user_id: userId,
-          title: '✅ تم تفعيل حسابك بنجاح!',
-          message: 'مرحباً ' + userName + '،\n\nتم تفعيل حسابك كـ ' + userRole + '.\nالمدة: ' + months + ' شهر/أشهر\nتاريخ الانتهاء: ' + expiryDate.toLocaleDateString('ar-IQ') + '\n\nيمكنك الآن تسجيل الدخول.',
-          is_read: false
-        })
-        .then(function() {
-          return { success: true, userName: userName };
+        .single()
+        .then(function(profileRes) {
+          if (!profileRes || profileRes.error) {
+            console.error('Error fetching profile:', profileRes);
+            return {  { name: 'مستخدم', role: 'مستخدم' } };
+          }
+          
+          var userName = profileRes.data.name;
+          var userRole = profileRes.data.role;
+          
+          return client.from('notifications')
+            .insert({
+              user_id: userId,
+              title: '✅ تم تفعيل حسابك بنجاح!',
+              message: 'مرحباً ' + userName + '،\n\nتم تفعيل حسابك كـ ' + userRole + '.\nالمدة: ' + months + ' شهر/أشهر\nتاريخ الانتهاء: ' + expiryDate.toLocaleDateString('ar-IQ') + '\n\nيمكنك الآن تسجيل الدخول.',
+              is_read: false
+            })
+            .then(function() {
+              return { success: true, userName: userName };
+            });
         });
     })
     .then(function(result) {
@@ -671,8 +666,11 @@ function confirmActivation(userId) {
       
       alert('✅ تم تفعيل الحساب بنجاح!\nالمدة: ' + months + ' شهر/أشهر\nينتهي: ' + expiryDate.toLocaleDateString('ar-IQ'));
       
-      loadUsersTable();
-      loadStats();
+      // ✅ تأخير بسيط ثم تحديث الجدول
+      setTimeout(function() {
+        loadUsersTable();
+        loadStats();
+      }, 1000);
     })
     .catch(function(err) {
       console.error('Error:', err);
@@ -800,7 +798,6 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
-// ✅ التصحيح النهائي: data: { name: name }
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
@@ -809,7 +806,7 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
+  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
@@ -822,6 +819,85 @@ function saveProfile() {
   }).catch(function(err) { console.error(err); showMsg(msgEl, err.message || 'خطأ', 'error'); });
 }
 
+// ✅ زر تحديث الحالة للمستخدم
+function checkPendingStatus() {
+  var client = window.supabaseClient;
+  var msgEl = document.getElementById('pending-status-msg');
+  
+  if (!client || !app.currentUser) {
+    if (msgEl) {
+      msgEl.textContent = '⚠️ يرجى تسجيل الدخول أولاً';
+      msgEl.style.color = 'red';
+    }
+    return;
+  }
+  
+  if (msgEl) {
+    msgEl.textContent = '🔄 جاري التحقق...';
+    msgEl.style.color = '#667eea';
+  }
+  
+  client.from('profiles')
+    .select('*')
+    .eq('id', app.currentUser.id)
+    .single()
+    .then(function(res) {
+      if (res.error) throw res.error;
+      
+      var profile = res.data;
+      
+      if (profile.status === 'نشط') {
+        if (msgEl) {
+          msgEl.textContent = '✅ تم تفعيل حسابك! جاري التحويل...';
+          msgEl.style.color = 'green';
+        }
+        setTimeout(function() {
+          window.location.reload();
+        }, 1500);
+      } else if (profile.status === 'محظور') {
+        if (msgEl) {
+          msgEl.textContent = '❌ تم رفض حسابك. يرجى التواصل مع الإدارة';
+          msgEl.style.color = 'red';
+        }
+      } else {
+        if (msgEl) {
+          msgEl.textContent = '⏳ الحساب لا يزال قيد المراجعة';
+          msgEl.style.color = 'orange';
+        }
+      }
+    })
+    .catch(function(err) {
+      console.error('Error checking status:', err);
+      if (msgEl) {
+        msgEl.textContent = '⚠️ حدث خطأ في التحقق';
+        msgEl.style.color = 'red';
+      }
+    });
+}
+
+// ✅ التحقق التلقائي كل 30 ثانية
+function startAutoCheck() {
+  setInterval(function() {
+    var pendingScreen = document.getElementById('pending-screen');
+    if (pendingScreen && !pendingScreen.classList.contains('hidden') && app.currentUser) {
+      var client = window.supabaseClient;
+      client.from('profiles')
+        .select('status')
+        .eq('id', app.currentUser.id)
+        .single()
+        .then(function(res) {
+          if (res.data && res.data.status === 'نشط') {
+            alert('🎉 تم تفعيل حسابك بنجاح!');
+            window.location.reload();
+          }
+        })
+        .catch(function(err) {
+          console.error('Auto check error:', err);
+        });
+    }
+  }, 30000); // كل 30 ثانية
+}
+
 function startApp() {
   if (app.ready) return;
   app.ready = true;
@@ -829,9 +905,11 @@ function startApp() {
   checkSession();
   setupRealtime();
   setupEvents();
+  startAutoCheck(); // ✅ بدء التحقق التلقائي
 }
 
 window.updateUserStatus = changeStatus;
 window.deleteUser = deleteUser;
 window.showActivationModal = showActivationModal;
 window.confirmActivation = confirmActivation;
+window.checkPendingStatus = checkPendingStatus;
