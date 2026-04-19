@@ -1,6 +1,6 @@
 // ==========================================
 // شراع - تطبيق المنصة المتكاملة
-// [تحديث: تفعيل بمدة صلاحية + بيانات إدارة جديدة + ثبات الصفحة]
+// [النسخة النهائية المصححة - جاهزة للرفع]
 // ==========================================
 
 var CONFIG = {
@@ -111,7 +111,6 @@ function restoreScreen() {
   var savedRole = localStorage.getItem('shira_role');
   if (savedRole) app.currentRole = savedRole;
   
-  // ✅ إذا كانت المحفوظة هي لوحة الإدارة، ابقَ فيها
   if (saved === 'admin-panel') {
     showScreen('admin-panel');
     if (savedTab) {
@@ -134,10 +133,9 @@ function restoreScreen() {
 }
 
 // ==========================================
-// 5. التحقق من الجلسة ✅ محدث للتحقق من الصلاحية
+// 5. التحقق من الجلسة
 // ==========================================
 function checkSession() {
-  // ✅ 1. التحقق من دخول الإدارة أولاً (للثبات عند التحديث)
   if (localStorage.getItem('shira_admin_logged') === 'true') {
     showScreen('admin-panel');
     loadStats();
@@ -166,7 +164,6 @@ function checkSession() {
       return;
     }
     
-    // ✅ 2. التحقق من انتهاء الصلاحية
     if (profile.subscription_expiry && profile.status === 'نشط') {
       var expiryDate = new Date(profile.subscription_expiry);
       if (new Date() > expiryDate) {
@@ -316,7 +313,7 @@ function setupEvents() {
 }
 
 // ==========================================
-// 8. المصادقة
+// 8. المصادقة ✅ مصحح
 // ==========================================
 async function handleAuth(e) {
   e.preventDefault();
@@ -347,10 +344,11 @@ async function handleAuth(e) {
       if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
       showMsg(msgEl, 'جاري إنشاء الحساب...', 'success');
       
+      // ✅ التصحيح: إضافة data
       var signUpResult = await client.auth.signUp({
         email: phone + '@shira.app', 
         password: pass,
-        options: {  { phone: phone, name: name, role: currentRole } }
+        options: { data: { phone: phone, name: name, role: currentRole } }
       });
       
       if (signUpResult.error) throw signUpResult.error;
@@ -576,14 +574,13 @@ function showMsg(el, txt, type) {
 }
 
 // ==========================================
-// 10. لوحة الإدارة ✅ محدثة بالكامل
+// 10. لوحة الإدارة ✅ مصححة
 // ==========================================
 function handleAdminLogin() {
   var u = document.getElementById('admin-user').value.trim();
   var p = document.getElementById('admin-pass').value;
   var err = document.getElementById('login-error');
   
-  // ✅ تغيير بيانات الدخول
   if (u === 'علي' && p === 'جنده') {
     localStorage.setItem('shira_admin_logged', 'true');
     if (err) err.classList.add('hidden');
@@ -609,7 +606,6 @@ function loadStats() {
   }).catch(function(err) { console.error('Stats Error:', err); });
 }
 
-// ✅ عرض نافذة اختيار مدة التفعيل
 function showActivationModal(userId) {
   var modal = document.createElement('div');
   modal.id = 'activation-modal';
@@ -633,7 +629,6 @@ function showActivationModal(userId) {
   document.body.appendChild(modal);
 }
 
-// ✅ تنفيذ التفعيل مع حساب تاريخ الانتهاء
 function confirmActivation(userId) {
   var months = parseInt(document.getElementById('activation-months').value);
   var expiryDate = new Date();
@@ -670,7 +665,6 @@ function loadUsersTable() {
         var tr = document.createElement('tr');
         var actions = '';
         
-        // ✅ زر التفعيل يفتح نافذة المدة
         if (u.status === 'قيد المراجعة' || u.status === 'منتهي الصلاحية') {
           actions += '<button class="btn-action" onclick="showActivationModal(\'' + u.id + '\')">⏳ تفعيل</button>';
         }
@@ -778,6 +772,7 @@ function showProfileEditor() {
   document.getElementById('cancel-edit').onclick = function() { checkSession(); };
 }
 
+// ✅ التصحيح النهائي هنا
 function saveProfile() {
   var client = window.supabaseClient;
   if (!client || !app.currentUser) return;
@@ -786,7 +781,8 @@ function saveProfile() {
   var msgEl = document.getElementById('profile-msg');
   if (!name) { showMsg(msgEl, 'الاسم مطلوب', 'error'); return; }
   
-  client.auth.updateUser({  { name: name } }).then(function(metaRes) {
+  // ✅ التصحيح: إضافة data
+  client.auth.updateUser({ data: { name: name } }).then(function(metaRes) {
     if (metaRes.error) throw metaRes.error;
     if (password) return client.auth.updateUser({ password: password });
     return Promise.resolve();
